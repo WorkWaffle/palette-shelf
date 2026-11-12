@@ -78,3 +78,7 @@ cd tauri/src-tauri && cargo tauri build
 | `tests/webkit_smoke.py`, `tests/tauri_selftest.js` | The app inside WebKitGTK and inside the Tauri build. |
 
 See [CLAUDE.md](CLAUDE.md) for the code map, project rules and exact test commands. [REVIEW.md](REVIEW.md) and [NATIVE.md](NATIVE.md) cover the 2.0 design review and the move to Tauri.
+
+## License
+
+[MIT](LICENSE). The harmony wheel is adapted from Harmony Genny by delphitools (0BSD).
