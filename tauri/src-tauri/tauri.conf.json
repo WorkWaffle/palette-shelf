@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Palette Shelf",
+  "version": "2.0.0",
+  "identifier": "local.paletteshelf",
+  "build": {
+    "frontendDist": "../www"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Palette Shelf",
+        "width": 1280,
+        "height": 860,
+        "minWidth": 420,
+        "minHeight": 500,
+        "backgroundColor": "#140300",
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "rpm", "appimage"],
+    "category": "GraphicsAndDesign",
+    "shortDescription": "Personal colour palette manager",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.png"],
+    "linux": {
+      "deb": { "depends": [] },
+      "appimage": { "bundleMediaFramework": false }
+    }
+  }
+}

@@ -74,3 +74,17 @@ Each shell keeps its own `localStorage`, so palettes don't carry over by themsel
 3. If any target device is ARM, or the Rust toolchain isn't worth it, use the installable web app on those devices instead. The same `palette-shelf.html` serves both.
 
 Sources: [Tauri AppImage docs](https://v2.tauri.app/distribute/appimage/), [Tauri bundler 2.10.0 notes](https://v2.tauri.app/release/tauri-bundler/v2.10.0/), [Tauri size estimate (third-party)](https://stuffbucket.github.io/skills/catalog/tauri-bundling-linux-packaging/), [Wails v3 Linux packaging](https://v3.wails.io/guides/build/linux), [Wails releases](https://github.com/wailsapp/wails/releases), [WebKit EyeDropper bug 229755](https://bugs.webkit.org/show_bug.cgi?id=229755), [EyeDropper support](https://web-platform-dx.github.io/web-features-explorer/features/eyedropper).
+
+## Result: Tauri v2 build (done 2026-11-11, branch `tauri-v2`)
+
+Built with Tauri 2 (CLI 2.12.4) and Rust 1.99.1 on Mint 22.3 against system WebKitGTK 2.52.
+
+| | Electron 44 | Tauri v2 |
+|---|---|---|
+| Package | AppImage 120 MB | `.deb` 1.6 MB, `.rpm` 1.6 MB, AppImage 79 MB |
+| Memory at idle (PSS, all processes) | 262 MB | 194 MB |
+| Self-test (`tests/tauri_selftest.js`) | n/a | passes: IPC, localStorage, undo, analysis, PNG export, generator, no errors |
+| Screen eyedropper | ✅ | ❌ (the button hides itself) |
+| Saving files | Electron download dialog | Native GTK Save dialog through `save_file` |
+
+The `.deb` only works where WebKitGTK 4.1 is installed. The AppImage carries its own copy. The Electron build is still there and still works.

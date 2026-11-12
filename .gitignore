@@ -3,3 +3,6 @@ app/index.html
 app/dist/
 dist/
 tests/out/
+tauri/www/
+tauri/src-tauri/target/
+tauri/src-tauri/gen/

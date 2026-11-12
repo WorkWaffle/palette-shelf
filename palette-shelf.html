@@ -1254,7 +1254,11 @@ function parseUSS(text){let d;try{d=JSON.parse(text)}catch(e){return null}
       swatches:(g.Swatches||[]).slice().sort((a,c)=>(a.Priority||0)-(c.Priority||0)).map(s=>({id:uid(),name:locName(s.Name),m:s.Material||'Default',p:col(s.PrimaryColor),s:col(s.SecondaryColor)}))}));
     return b});
   return out.length?out:null}
-async function saveText(filename,data){let d=null;try{d=window.claude&&await window.claude.use('downloads')}catch(e){}
+async function saveText(filename,data){
+  // Tauri desktop build: native Save dialog through the save_file command in tauri/src-tauri/src/main.rs
+  if(window.__TAURI__&&window.__TAURI__.core){try{const bytes=data instanceof Blob?new Uint8Array(await data.arrayBuffer()):new TextEncoder().encode(data);
+      const r=await window.__TAURI__.core.invoke('save_file',{name:filename,data:Array.from(bytes)});toast(r==='saved'?'Saved':'Save cancelled')}catch(err){toast('Could not save: '+(err&&err.message||err))}return}
+  let d=null;try{d=window.claude&&await window.claude.use('downloads')}catch(e){}
   if(d){try{await d.save({filename,data});toast('Saved')}catch(err){toast(err&&err.code==='declined'?'Save cancelled':'Could not save: '+((err&&err.message)||'not available'))}return}
   if(window.parent===window){const blob=data instanceof Blob?data:new Blob([data],{type:'application/octet-stream'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Saved');return}
   toast('Saving files is not available here. Use Copy instead.')}

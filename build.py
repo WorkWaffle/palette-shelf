@@ -2,7 +2,8 @@
 """Build the desktop page and the Windows file from palette-shelf.html.
 
 Needs `npm install` inside app/ first (it reads the Space Mono fonts from node_modules).
-Writes app/index.html (loaded by Electron) and dist/palette-shelf-windows.html (a single file that opens in any browser).
+Writes app/index.html (loaded by Electron), dist/palette-shelf-windows.html (a single file that opens in any browser)
+and tauri/www/index.html (loaded by the Tauri build).
 """
 import base64, pathlib, re, sys
 root = pathlib.Path(__file__).parent
@@ -27,4 +28,9 @@ out = head + src.replace(link, fonts) + '\n</body></html>\n'
 (root / 'app/index.html').write_text(out)
 (root / 'dist').mkdir(exist_ok=True)
 (root / 'dist/palette-shelf-windows.html').write_text(out)
-print('wrote app/index.html and dist/palette-shelf-windows.html', len(out), 'bytes')
+# Tauri build: same page, with the CSP also allowing Tauri's IPC channel
+tauri_out = out.replace("img-src data: blob:", "img-src data: blob:; connect-src ipc: http://ipc.localhost", 1)
+assert tauri_out != out, 'CSP not found'
+(root / 'tauri/www').mkdir(parents=True, exist_ok=True)
+(root / 'tauri/www/index.html').write_text(tauri_out)
+print('wrote app/index.html, dist/palette-shelf-windows.html and tauri/www/index.html', len(out), 'bytes')
