@@ -1,0 +1,5 @@
+node_modules/
+app/index.html
+app/dist/
+dist/
+tests/out/

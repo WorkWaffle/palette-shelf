@@ -1,0 +1,1403 @@
+<title>Palette Shelf</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap">
+<style>
+/* Layout: library rail on the left, open palette as a big swatch board on the right; stacks on phones */
+:root{
+  --ease-out:cubic-bezier(0.23,1,0.32,1);--ease-in-out:cubic-bezier(0.77,0,0.175,1);
+  --bg:#fff4e4;--panel:#ffe6c2;--fg:#140300;--muted:#582c00;--line:#ffca86;--accent:#613400;--danger:#b3261e;
+  --display:"Space Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;--body:"Space Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;--mono:"Space Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#140300;--panel:#331600;--fg:#ffca86;--muted:#d1883d;--line:#582c00;--accent:#f29e00;--danger:#ff7f5c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#140300;--panel:#331600;--fg:#ffca86;--muted:#d1883d;--line:#582c00;--accent:#f29e00;--danger:#ff7f5c;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px}
+.wrap{display:grid;grid-template-columns:280px 1fr;gap:24px;padding-block:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1300px;margin:0 auto}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}}
+h1{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-family:var(--display);font-weight:700;font-size:30px;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h3{font-family:var(--display);font-weight:500;font-size:18px;margin:0}
+.sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+input,select,button{font:inherit;color:var(--fg)}
+input,select{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 11px;cursor:pointer;transition:transform 160ms var(--ease-out)}
+@media (hover:hover) and (pointer:fine){button:hover{border-color:var(--accent)}}
+button:not(:disabled):active{transform:scale(.97)}
+.sw .chip:not(:disabled):active{transform:scale(.98)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+button.ghost{border-color:transparent;background:none;color:var(--muted)}
+button.danger{color:var(--danger)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rail{display:flex;flex-direction:column;gap:10px;min-width:0}
+.list{display:flex;flex-direction:column;gap:6px}
+.item{display:flex;flex-direction:column;gap:6px;text-align:left;padding:10px;border-radius:8px;background:var(--panel)}
+.item.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.item .name{font-weight:600}
+.item .meta{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.strip{display:flex;height:14px;border-radius:3px;overflow:hidden}
+.strip span{flex:1}
+.main{display:flex;flex-direction:column;gap:20px;min-width:0}
+.group{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.sw{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel);position:relative}
+.sw .chip{height:84px;border:0;border-radius:0;padding:0;cursor:copy;position:relative}
+.sw .info{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:1px;min-width:0;padding:6px 8px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.sw .x{position:absolute;top:4px;right:4px;padding:0 6px;font-size:13px;background:var(--panel);opacity:0}
+.sw:hover .x,.sw:focus-within .x{opacity:1}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.empty{color:var(--muted);font-size:14px}
+textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:12px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px;box-sizing:border-box}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translate(-50%,100%);opacity:0;visibility:hidden;pointer-events:none;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;transition:transform 150ms var(--ease-out),opacity 150ms var(--ease-out),visibility 0s 150ms}
+.toast.show{transform:translate(-50%,0);opacity:1;visibility:visible;transition:transform 200ms var(--ease-out),opacity 200ms var(--ease-out),visibility 0s}
+.note{font-size:12px;color:var(--muted)}
+.tabs{border-bottom:1px solid var(--line);gap:4px}
+.tab{border:0;border-radius:6px 6px 0 0;background:none;color:var(--muted);font-weight:600;padding:8px 14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--fg);border-bottom-color:var(--accent)}
+.scroll{overflow-x:auto;max-width:100%}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stats div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.stats b{font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:var(--muted)}
+table.cg{border-collapse:collapse;font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums}
+table.cg td{width:40px;min-width:40px;height:32px;text-align:center;line-height:1.1;border:1px solid var(--bg)}
+table.cg td small{display:block;font-size:9px}
+table.cg td.fail{opacity:.3}
+table.cg td.self{background:repeating-linear-gradient(45deg,var(--line) 0 3px,transparent 3px 6px)}
+table.cg th{padding:2px}
+.dot{display:inline-block;width:16px;height:16px;border-radius:3px;border:1px solid var(--line);vertical-align:middle}
+.strip.big{height:34px;border-radius:5px}
+.cb{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:center}
+@media (max-width:500px){.cb{grid-template-columns:1fr;gap:4px}}
+canvas.px{image-rendering:pixelated;display:block}
+.dups{display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:13px}
+.maps{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+figure{margin:0;display:flex;flex-direction:column;gap:4px;min-width:0;max-width:100%}
+figcaption{font-size:12px;color:var(--muted)}
+.ranges{display:grid;grid-template-columns:72px 1fr;gap:4px 10px;align-items:center;max-width:560px}
+.ranges canvas{width:100%;height:18px;border-radius:3px}
+.bars{display:grid;grid-template-columns:auto auto 1fr 1fr;gap:4px 10px;align-items:center;font-family:var(--mono);font-size:12px;max-width:640px;font-variant-numeric:tabular-nums}
+.bar{height:10px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--muted)}
+.gstrip{display:flex;flex-wrap:wrap;gap:4px}
+.gs{width:44px;height:44px;padding:0;border-radius:4px;border:1px solid var(--line);position:relative;cursor:copy}
+.gs.orig::after{content:"";position:absolute;left:50%;bottom:5px;width:6px;height:6px;margin-left:-4px;border-radius:50%;background:var(--panel);border:1px solid var(--fg)}
+.ctls{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 20px}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center}
+.ctl input{grid-column:1/-1;padding:0;border:0;background:none;accent-color:var(--accent)}
+.signs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sign{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:6px;border:1px solid var(--line)}
+.sign b{font-family:var(--display);font-size:22px;font-weight:700}
+.sign span{font-family:var(--mono);font-size:11px}
+.swbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 26px;align-items:end;padding:12px 16px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.bd{display:flex;flex-direction:column;gap:6px}
+.fambar{display:flex;height:12px;border-radius:4px;overflow:hidden;gap:2px}
+.famlegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.famlegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.strip.mini{width:90px;height:10px}
+.selbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:var(--panel);border:1px solid var(--accent);border-radius:8px}
+.grid.s{grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
+.grid.s .chip{height:46px}.grid.s .info{flex-direction:column;align-items:flex-start;font-size:11px;padding:4px 6px}
+.grid.l{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.grid.l .chip{height:124px}
+.lv{color:var(--muted);font-size:11px}
+.sw .nm{font-family:var(--body);font-weight:600;font-size:13px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid.s .nm{font-size:11px}
+.grid.s .lv{font-size:10px}
+.sw .tag{padding:0 8px 6px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sw.picked{outline:3px solid var(--accent);outline-offset:1px}
+.sw .chip[data-pick]{cursor:pointer}
+.sw.picked .chip::after{content:"✓";position:absolute;top:6px;left:8px;font-weight:700;font-size:15px;color:var(--ink)}
+.exp{display:flex;flex-direction:column;gap:12px;padding:14px 16px;border:1px solid var(--accent);border-radius:8px;background:var(--panel)}
+.exp textarea{min-height:150px;max-height:320px}
+.rhead{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-start;justify-content:space-between}
+.rhead>div:first-child{flex:1 1 260px!important}
+#main{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 10px)}
+.titlein{width:100%;box-sizing:border-box;font-family:var(--display);font-size:26px;font-weight:700;color:var(--fg);background:transparent;border:1px dashed transparent;border-radius:6px;padding:2px 6px;margin:0 0 4px -7px}
+.titlein:hover{border-color:var(--line)}
+.titlein:focus{border-color:var(--accent);border-style:solid;background:var(--panel)}
+.numin{width:80px;justify-self:end;border-color:var(--muted)!important;text-align:right;font-variant-numeric:tabular-nums}
+.warnline{margin:0;padding:8px 10px;border:1px solid var(--danger);border-radius:6px;color:var(--danger);font-size:12px}
+.ussgen label.ctl:has(#rCount){display:none}
+.ughead{gap:8px}
+.handle{cursor:grab;font-size:18px;color:var(--muted);padding:0 4px;user-select:none}
+.gname{font-family:var(--display);font-weight:700;font-size:15px;background:transparent;border:1px dashed transparent;min-width:0;max-width:260px}
+.gname:hover{border-color:var(--line)}.gname:focus{border-style:solid;border-color:var(--accent);background:var(--panel)}
+.ugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;min-height:56px;padding:6px;border:2px dashed transparent;border-radius:8px}
+.ugrid.over{border-color:var(--accent)}
+.utile{display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:grab;position:relative;min-width:0}
+.utile:focus-visible,.utile.on{outline:2px solid var(--accent);outline-offset:1px}
+.utile.dragging{opacity:.4}
+.utile.dropL{box-shadow:-5px 0 0 var(--accent)}.utile.dropR{box-shadow:5px 0 0 var(--accent)}
+.ugroup.dropT{box-shadow:0 -4px 0 var(--accent)}.ugroup.dropB{box-shadow:0 4px 0 var(--accent)}
+.uchip{display:block;aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,var(--p) 0 50%,var(--s) 50% 100%);border:1px solid var(--line)}
+.uchip.big{width:96px;flex:none}.uchip.mini{width:22px;display:inline-block;vertical-align:middle;margin-right:3px}
+.unum{position:absolute;top:6px;left:6px;font-size:10px;line-height:1;padding:2px 4px;border-radius:4px;background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums}
+.unm{font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ued{display:flex;gap:16px;align-items:flex-start;padding:12px 14px;border:1px solid var(--accent);border-radius:8px;background:var(--panel);flex-wrap:wrap;position:sticky;top:env(safe-area-inset-top,0px);z-index:4}
+.uedf{display:flex;flex-direction:column;gap:8px;flex:1;min-width:240px}.uedf .ctl{min-width:0}
+.hexin{width:110px;font-family:var(--mono)}
+input[type=color]{width:40px;height:34px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.upick{display:grid;grid-template-columns:repeat(auto-fill,minmax(26px,1fr));gap:3px}.upick .uchip{border-radius:3px}
+.utab{border-collapse:collapse;font-size:12px;width:100%;font-variant-numeric:tabular-nums}
+.utab th{text-align:left;font-weight:400;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.utab td{padding:4px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.utab tr.flag td{background:color-mix(in srgb,var(--danger) 10%,transparent)}
+.rowchip{width:34px;padding:0;cursor:pointer}.cbs{white-space:nowrap}
+.pill{display:inline-block;font-size:10px;padding:1px 6px;border-radius:9px;border:1px solid var(--line);color:var(--muted)}
+.pill.bad{border-color:var(--danger);color:var(--danger)}
+.urows{display:flex;flex-direction:column}
+.urow{display:grid;grid-template-columns:minmax(160px,200px) 1fr;gap:10px 24px;padding-block:14px;border-top:1px solid var(--line)}
+.urow:first-child{border-top:0;padding-top:0}.urow:last-child{padding-bottom:0}
+.urowh{display:flex;flex-direction:column;gap:6px;min-width:0}.urowh .note{margin:0}
+.urowc{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px 28px;align-items:start;min-width:0}
+.urowc>.note,.urowc>#ussCountWarn{grid-column:1/-1}
+@media (max-width:700px){.urow{grid-template-columns:1fr}}
+.urows+.urows>.urow:first-child{border-top:1px solid var(--line);padding-top:14px}
+.urowc>.sub,.urowc>.togw .note{grid-column:1/-1}
+.togw{display:flex;flex-direction:column;gap:6px}.togw .note{margin:0}
+.tog{display:flex;gap:10px;align-items:center;cursor:pointer;font-size:13px;position:relative}
+.tog input{position:absolute;opacity:0;width:1px;height:1px}
+.tog .tk{flex:none;width:38px;height:22px;border-radius:11px;background:var(--line);position:relative;transition:background .15s}
+.tog .tk::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--bg);box-shadow:0 0 0 1px var(--muted);transition:transform .15s}
+.tog input:checked+.tk{background:var(--accent)}.tog input:checked+.tk::after{transform:translateX(16px);box-shadow:none}
+.tog input:focus-visible+.tk{outline:2px solid var(--accent);outline-offset:2px}
+.tog.off{opacity:.5;cursor:not-allowed}
+@media (prefers-reduced-motion:reduce){.tog .tk,.tog .tk::after{transition:none}}
+/* Motion: short and ease-out, one-shot where the panel is rebuilt on every change */
+:root{interpolate-size:allow-keywords}
+details::details-content{block-size:0;opacity:0;overflow:clip;transition:block-size 200ms var(--ease-out),opacity 200ms var(--ease-out),content-visibility 200ms allow-discrete}
+details[open]::details-content{block-size:auto;opacity:1}
+@keyframes rise{from{opacity:0;transform:translateY(-4px)}}
+@keyframes land{from{opacity:.6;transform:scale(.96)}}
+@keyframes enter{from{opacity:0;transform:translateY(6px) scale(.97)}}
+@keyframes fade{from{opacity:0}}
+.exp.enter,#confirm>*{animation:rise 160ms var(--ease-out)}
+.utile.landed{animation:land 160ms var(--ease-out)}
+.sw.enter{animation:enter 200ms var(--ease-out) backwards;animation-delay:calc(var(--i,0)*30ms)}
+@media (max-width:760px){#confirm>*{animation:none}}
+@media (prefers-reduced-motion:reduce){
+  button{transition:none}button:not(:disabled):active,.sw .chip:not(:disabled):active{transform:none}
+  .toast,.toast.show{transform:translate(-50%,0);transition-property:opacity,visibility}
+  details::details-content{transition:opacity 120ms,content-visibility 120ms allow-discrete}
+  .exp.enter,#confirm>*,.utile.landed,.sw.enter{animation:fade 120ms linear backwards}}
+.filebtn{display:flex;align-items:center;justify-content:center;padding:8px 12px;border:1px dashed var(--muted);border-radius:6px;cursor:pointer;font-size:13px;text-align:center}
+.filebtn:hover,.filebtn:focus-within{border-color:var(--accent);border-style:solid}
+.filebtn input{position:absolute;opacity:0;width:1px;height:1px;overflow:hidden}
+.filebtn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+/* tabs never wrap; they scroll sideways on narrow screens */
+.tabs{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs .tab{white-space:nowrap;flex:none;margin-bottom:0}
+/* code and backup text keep their shape and scroll instead of wrapping into fragments */
+textarea{tab-size:2;-moz-tab-size:2;white-space:pre;overflow:auto}
+/* tables scroll sideways rather than squeezing their columns */
+.utab{min-width:720px}.utab .tn{min-width:250px}
+.simrow{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;padding-block:6px;border-bottom:1px solid var(--line)}
+.simrow>span{display:flex;align-items:center;gap:6px;min-width:0}
+.simrow>.note{margin:0}
+/* many-stop sliders get slightly smaller labels */
+.steps[style*="--n:7"] .st,.steps[style*="--n:8"] .st,.steps[style*="--n:9"] .st{font-size:10px;letter-spacing:-.04em}
+/* row layout follows the width of the main area, not the window */
+#main{container-type:inline-size}
+@container (max-width:620px){.urow{grid-template-columns:1fr}.urowc{grid-template-columns:1fr}}
+@media (max-width:480px){.st{font-size:10.5px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stats b{font-size:20px}}
+.relprev{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.relprev .note{margin:0;flex-basis:100%}
+.rdot{width:22px;height:22px;border-radius:50%;border:2px solid var(--panel);outline:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}
+.chues{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+.chue{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;text-align:left;border-radius:16px}
+.chue span{width:14px;height:14px;border-radius:50%;flex:none;outline:1px solid var(--line)}
+.chue.on{border-color:var(--accent);background:var(--accent);color:var(--bg);font-weight:600}
+.chue.on span{outline-color:var(--bg)}
+.relchips{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.hwrap{grid-column:1/-1;display:grid;grid-template-columns:minmax(200px,280px) minmax(0,1fr);gap:18px 24px;align-items:center}
+.hwheel{position:relative;width:100%;aspect-ratio:1;touch-action:none}
+.hwheel>*{position:absolute;inset:0;width:100%;height:100%}
+.hwheel::before{content:"";position:absolute;inset:7%;border-radius:50%;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/10px 10px;opacity:.5}
+.hwctl{border-radius:50%;cursor:grab}.hwctl:active{cursor:grabbing}.hwctl.ro{cursor:default}
+.hwctl:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.hwticks{stroke:var(--fg);stroke-width:.006;opacity:.45}.hwspokes{stroke:var(--fg);stroke-width:.007;opacity:.55;fill:none}
+.hwshape{fill:var(--fg);fill-opacity:.08;stroke:var(--fg);stroke-width:.007;stroke-opacity:.55}
+.hwhub{fill:var(--fg)}.hwdot{stroke:var(--fg);stroke-width:.006;stroke-opacity:.6}
+.hwlock path{stroke:var(--bg)}.hwlock rect{fill:var(--bg)}.hwlock{pointer-events:none}
+.hwbead{stroke:var(--bg);stroke-width:.02;paint-order:stroke}.hwbead.base{stroke:var(--fg);stroke-width:.014}
+.hwside{display:flex;flex-direction:column;gap:12px;min-width:0}.hwside .note{margin:0}
+.hwread{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;align-items:baseline}.hwread .label{grid-column:1/-1}
+.hwread output{font-variant-numeric:tabular-nums}.hwbig{font-size:26px;font-weight:700;line-height:1.1}
+.hwread button{grid-column:1/-1;justify-self:start;margin-top:4px}
+@container (max-width:620px){.hwrap{grid-template-columns:1fr}.hwheel{max-width:300px;justify-self:center}.relchips{grid-template-columns:1fr 1fr}.relchips .chue{font-size:11px;padding:5px 6px;border-radius:12px}}
+.peek{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid var(--line)}.peek .note{margin:0}.relchips .chue{justify-content:center;text-align:center}
+.acards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.acard{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.acard b{font-size:13px;min-width:0}.acard .strip{height:22px}
+.pill.ok{border-color:var(--accent);color:var(--fg)}
+.acard .pill{white-space:nowrap;flex:none}
+.callout{padding:10px 12px;border:1px dashed var(--line);border-radius:8px}
+.pnl.wide{grid-column:1/-1;padding:16px 18px}
+.col .note{margin:0}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px 28px}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.label.sect{color:var(--fg);font-weight:600;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.pnl{margin:0;border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:var(--panel);min-width:0}
+.pnl h4{margin:0;font-family:var(--display);font-size:16px;font-weight:700}
+.pnl .note{margin:0}
+.pnl .sub{display:flex;flex-direction:column;gap:8px;padding:8px 0 2px 10px;border-left:2px solid var(--accent)}
+.chk{gap:8px;align-items:flex-start;flex-wrap:nowrap}
+.chk input{margin-top:3px}
+.chk.off{color:var(--muted)}
+select:disabled,input:disabled{opacity:.5}
+.stepctl output{font-size:12px;color:var(--fg)}
+.stepctl.off .label{opacity:.5}
+.steps{grid-column:1/-1;display:flex;position:relative;padding-top:16px}
+.steps::before{content:"";position:absolute;top:8px;left:calc(50% / var(--n));right:calc(50% / var(--n));height:2px;background:var(--line);border-radius:1px}
+.st{flex:1;min-width:0;background:none;border:0;border-radius:4px;padding:4px 1px 2px;font-size:11px;letter-spacing:-.02em;overflow-wrap:normal;hyphens:manual;line-height:1.2;color:var(--muted);position:relative;text-align:center;cursor:pointer}
+.st::before{content:"";position:absolute;top:-13px;left:50%;width:10px;height:10px;margin-left:-7px;border-radius:50%;background:var(--dot,var(--panel));border:2px solid var(--line);box-sizing:content-box}
+.st:hover:not(.dis)::before{border-color:var(--accent)}
+.st.on{color:var(--fg);font-weight:600}
+.st.on::before{background:var(--dot,var(--accent));border-color:var(--accent);width:14px;height:14px;margin-left:-9px;top:-15px}
+.st.implied::before{border-color:var(--accent);border-style:dashed}
+.st.dis{opacity:.35;cursor:not-allowed}
+.st.dis span{text-decoration:line-through}
+.steps.dots .st span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.steps.dots .st{height:8px}
+.steps.dots .st::before{border-color:var(--panel);outline:1px solid var(--line)}
+.steps.dots .st.on::before{border-color:var(--panel);outline:2px solid var(--fg)}
+.ctl.off .label{opacity:.5}
+.ctl output{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+</style>
+
+<div class="wrap">
+  <aside class="rail">
+    <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><h1>Palette Shelf</h1><p class="sub">Your colours, sorted and kept.</p></div><button id="themeBtn" class="ghost" aria-label="Switch between light and dark mode" title="Switch between light and dark mode"></button></div>
+    <div class="row"><button class="primary" id="addPal" style="flex:1;line-height:1.25">Add<br>palette</button><button id="openRandom" style="flex:1;line-height:1.25">Random<br>palette</button></div>
+    <button id="openUss" style="width:100%">Satisfactory swatches</button>
+    <label class="filebtn"><input type="file" id="gpl" accept=".gpl,.txt,.hex,.json,text/plain,application/json" multiple>Import palette files…</label>
+    <p class="note" style="margin:0">Load GIMP (.gpl), Paint.NET (.txt) or .hex palettes, or a Universal Swatch Slots .json. You can also drop files anywhere on the page.</p>
+    <div class="row"><input id="search" placeholder="Search name or hex" style="flex:1"></div>
+    <div class="row"><span class="label">Sort</span><select id="sortPal" style="flex:1"><option value="recent">Recently edited</option><option value="name">Name A–Z</option><option value="count">Most colours</option><option value="fewest">Fewest colours</option></select></div>
+    <div class="list" id="list"></div>
+    <details><summary class="note">Back up or restore</summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <textarea id="io" placeholder="Paste a backup here, or press Copy backup"></textarea>
+        <div class="row"><button id="exp">Copy backup</button><button id="imp">Restore from text</button></div>
+        <p class="note">Palettes save in this browser only. Copy a backup to keep them safe or move them to another device.</p>
+      </div>
+    </details>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const KEY='palette-shelf-v1';
+const uid=()=>Math.random().toString(36).slice(2,9);
+const sample=()=>[
+  {id:uid(),name:'Autumn Walk (example)',updated:Date.now(),groups:[
+    {id:uid(),name:'Leaves',colors:['#8c2f1b','#c4551f','#e3923a','#f2c46d']},
+    {id:uid(),name:'Bark & soil',colors:['#3b2a20','#6b4a32','#9c7a55']}]},
+  {id:uid(),name:'Sea Glass (example)',updated:Date.now()-1e6,groups:[
+    {id:uid(),name:'Main',colors:['#0f3b4c','#1f6f78','#5fb3a8','#bfe3d0','#eef6f1']}]}
+];
+let state;
+try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!state||!Array.isArray(state.palettes))state={palettes:sample(),open:null};
+if(!state.open&&state.palettes[0])state.open=state.palettes[0].id;
+const ui={sortPal:'recent',q:'',view:'swatches',scope:'all',sw:{view:'groups',sort:'manual',size:'m',select:false},exp:{open:false,fmt:'gpl',scope:'whole',group:null},sel:new Set(),ussa:{sort:'order'},gen:{mode:'between',steps:1,ext:2,ramp:7,shift:15,rot:180,chroma:100},rand:{preset:'none',temp:'any',spread:'auto',sat:'auto',mood:'auto',count:16,shift:15,ramps:true,neutral:true,seeds:'',name:'',sortL:true,legible:'off',legAim:'balanced',legHues:false,baseHue:'auto',baseLock:false,baseSeed:null,customHues:['25','145','265'],emissive:true,monoHue:'auto',satC:.12,monoDeg:72,nTint:'auto',nStrength:'auto',seed:Math.floor(Math.random()*1e9)}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function norm(h){h=h.trim().replace(/^#/,'').toLowerCase();if(/^[0-9a-f]{3}$/.test(h))h=h.split('').map(c=>c+c).join('');return /^[0-9a-f]{6}$/.test(h)?'#'+h:null}
+function hsl(h){const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;let H=0,S=0;if(d){S=d/(1-Math.abs(2*l-1));H=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;H=(H*60+360)%360}return{h:H,s:S,l}}
+const textOn=h=>hsl(h).l>.55?'#111':'#fff';
+const all=p=>p.groups.flatMap(g=>g.colors);
+const cur=()=>state.palettes.find(p=>p.id===state.open);
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1400)}
+function copy(t){navigator.clipboard.writeText(t).then(()=>toast('Copied '+t),()=>toast(t))}
+function touch(p){p.updated=Date.now();save();render()}
+
+function renderList(){
+  let ps=state.palettes.slice();const q=ui.q.toLowerCase().replace('#','');
+  if(q)ps=ps.filter(p=>p.name.toLowerCase().includes(q)||all(p).some(c=>c.includes(q))||p.groups.some(g=>g.name.toLowerCase().includes(q)));
+  const s=ui.sortPal;
+  ps.sort((a,b)=>s==='name'?a.name.localeCompare(b.name):s==='count'?all(b).length-all(a).length:s==='fewest'?all(a).length-all(b).length:b.updated-a.updated);
+  $('list').innerHTML=ps.length?ps.map(p=>`<button class="item ${p.id===state.open?'on':''}" data-open="${p.id}">
+    <span class="name">${esc(p.name)}</span>
+    <span class="strip">${all(p).map(c=>`<span style="background:${c}"></span>`).join('')||'<span style="background:var(--line)"></span>'}</span>
+    <span class="meta">${all(p).length} colours · ${p.groups.length} sub-palette${p.groups.length===1?'':'s'}</span></button>`).join(''):'<p class="empty">No palettes match.</p>';
+}
+function sortColors(cs,mode){const c=cs.slice();if(mode==='hue')c.sort((a,b)=>hsl(a).h-hsl(b).h);else if(mode==='light')c.sort((a,b)=>hsl(a).l-hsl(b).l);else if(mode==='sat')c.sort((a,b)=>hsl(b).s-hsl(a).s);return c}
+function renderMain(){
+  if(ui.view==='uss'){$('main').innerHTML=ussHTML();if($('randPanel'))updateRandom();
+    if(ui.landed){const el=document.querySelector(`.utile[data-usw="${ui.landed}"]`);if(el)el.classList.add('landed');ui.landed=null}return}
+  if(ui.view==='random'){$('main').innerHTML=randomHTML();updateRandom();return}
+  const p=cur();
+  if(!p){$('main').innerHTML='<p class="empty">Create a palette on the left to start collecting colours.</p>';return}
+  $('main').innerHTML=`
+  <div class="row" style="justify-content:space-between">
+    <div style="min-width:0"><h2>${esc(p.name)}</h2><p class="note">${all(p).length} colours · ${ui.sw.select?'click swatches to select them':'click a swatch to copy its hex'}</p></div>
+    <div class="row"><button id="rename">Rename</button><button id="copyAll">Copy all hex</button><button id="exportBtn" aria-expanded="${ui.exp.open}">Export</button><button class="danger" id="delPal">Delete palette</button></div>
+  </div>
+  <div id="confirm"></div>
+  ${ui.exp.open?exportHTML(p):''}
+  ${tabs()}
+  ${ui.view==='analysis'?analysisHTML(p):ui.view==='generate'?genHTML(p):swatchesHTML(p)}`;
+  if(ui.expEnter){const e=document.querySelector('.exp');if(e)e.classList.add('enter');ui.expEnter=false}
+  if(ui.fresh){document.querySelectorAll('.sw').forEach((el,i)=>{if(i<16){el.style.setProperty('--i',i);el.classList.add('enter')}});ui.fresh=false}
+  if(ui.view==='analysis')drawAnalysis(p);
+  if(ui.view==='generate')updateGen();
+}
+
+/* ---------- colour maths ---------- */
+const hexRgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255);
+const lin=v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);
+const gam=v=>{v=Math.max(0,Math.min(1,v));return v<=.0031308?v*12.92:1.055*Math.pow(v,1/2.4)-.055};
+const toHex=a=>'#'+a.map(v=>Math.round(gam(v)*255).toString(16).padStart(2,'0')).join('');
+// Colour conversions are pure, so results are cached per hex code (bounded so long sessions stay small)
+const LIN=[...Array(256)].map((_,i)=>lin(i/255));
+const linRgb=h=>[1,3,5].map(i=>{const n=parseInt(h.slice(i,i+2),16);return LIN[n]??lin(n/255)});
+function memo(f,max=20000){const m=new Map();return h=>{let v=m.get(h);if(v===undefined){if(m.size>=max)m.clear();v=f(h);m.set(h,v)}return v}}
+const luminance=memo(h=>{const[r,g,b]=linRgb(h);return .2126*r+.7152*g+.0722*b});
+function ratio(a,b){const x=luminance(a),y=luminance(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+const oklabM=memo(h=>{const[r,g,b]=linRgb(h);
+  const l=Math.cbrt(.4122214708*r+.5363325363*g+.0514459929*b),m=Math.cbrt(.2119034982*r+.6806995451*g+.1073969566*b),s=Math.cbrt(.0883024619*r+.2817188376*g+.6299787005*b);
+  return[.2104542553*l+.793617785*m-.0040720468*s,1.9779984951*l-2.428592205*m+.4505937099*s,.0259040371*l+.7827717662*m-.808675766*s]});
+function oklab(h){return oklabM(h).slice()}
+const oklchM=memo(h=>{const[L,a,b]=oklabM(h);return{L,C:Math.hypot(a,b),H:(Math.atan2(b,a)*180/Math.PI+360)%360}});
+function oklch(h){const o=oklchM(h);return{L:o.L,C:o.C,H:o.H}}
+function fromOklch(L,C,H){const a=C*Math.cos(H*Math.PI/180),b=C*Math.sin(H*Math.PI/180);
+  const l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,s=(L-.0894841775*a-1.291485548*b)**3;
+  return toHex([4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.707614701*s])}
+const CB={
+  p:[[.152286,1.052583,-.204868],[.114503,.786281,.099216],[-.003882,-.048116,1.051998]],
+  d:[[.367322,.860646,-.227968],[.280085,.672501,.047413],[-.01182,.04294,.968881]],
+  t:[[1.255528,-.076749,-.178779],[-.078411,.930809,.147602],[.004733,.691367,.3039]]};
+const simM=new Map();function sim(h,M){let f=simM.get(M);if(!f)simM.set(M,f=memo(h=>{const v=linRgb(h);return toHex(M.map(r=>r[0]*v[0]+r[1]*v[1]+r[2]*v[2]))}));return f(h)}
+function gray(h){const L=luminance(h);return toHex([L,L,L])}
+function dist(a,b){const x=oklabM(a),y=oklabM(b);return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2])}
+
+/* ---------- analysis view ---------- */
+function tabs(){return `<div class="row tabs" role="tablist"><button class="tab ${ui.view==='swatches'?'on':''}" data-view="swatches" role="tab">Swatches</button><button class="tab ${ui.view==='analysis'?'on':''}" data-view="analysis" role="tab">Analysis</button><button class="tab ${ui.view==='generate'?'on':''}" data-view="generate" role="tab">Generate</button></div>`}
+function scopeColors(p){const g=p.groups.find(g=>g.id===ui.scope);return g?g.colors:[...new Set(all(p))]}
+function analysisHTML(p){
+  const cs=scopeColors(p),n=cs.length;
+  const sel=`<div class="row"><span class="label">Analyse</span><select id="scope" aria-label="Colours to analyse"><option value="all">All colours</option>${p.groups.map(g=>`<option value="${g.id}" ${ui.scope===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</select></div>`;
+  if(n<2)return sel+'<p class="empty">Add at least two colours to analyse them.</p>';
+  const Ls=cs.map(c=>oklch(c).L);
+  const pairs=[];for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)pairs.push([cs[i],cs[j]]);
+  const readable=pairs.filter(([a,b])=>ratio(a,b)>=4.5).length;
+  const dups=pairs.map(([a,b])=>[a,b,dist(a,b)]).filter(d=>d[2]<.05).sort((a,b)=>a[2]-b[2]);
+  const sorted=cs.slice().sort((a,b)=>oklch(a).L-oklch(b).L);
+  const strip=(f,list)=>`<div class="strip big">${list.map(c=>`<span style="background:${f(c)}" title="${c}"></span>`).join('')}</div>`;
+  const grid=n<=40?`<div class="scroll"><table class="cg"><tr><th></th>${cs.map(c=>`<th><span class="dot" style="background:${c}" title="${c}"></span></th>`).join('')}</tr>${cs.map(r=>`<tr><th><span class="dot" style="background:${r}" title="${r}"></span></th>${cs.map(c=>{if(r===c)return'<td class="self"></td>';const v=ratio(r,c);const k=v>=7?'AAA':v>=4.5?'AA':v>=3?'AA lg':'';return `<td class="${k?'':'fail'}" style="background:${r};color:${c}" title="${c} on ${r}: ${v.toFixed(2)}:1">${v.toFixed(1)}<small>${k}</small></td>`}).join('')}</tr>`).join('')}</table></div>`:'<p class="empty">The grid is limited to 40 colours. Pick a sub-palette above to see it.</p>';
+  return `${sel}
+  <div class="stats">
+    <div><b>${n}</b><span>colours analysed</span></div>
+    <div><b>${Math.round(Math.min(...Ls)*100)}–${Math.round(Math.max(...Ls)*100)}</b><span>lightness range (0–100)</span></div>
+    <div><b>${readable}/${pairs.length}</b><span>pairs readable as text (4.5:1)</span></div>
+    <div><b>${dups.length}</b><span>near-duplicate pairs</span></div>
+  </div>
+
+  <section class="group"><div class="row" style="justify-content:space-between"><h3>Accessibility check</h3><div class="row"><button id="accFixCvd">Save a colour-blind-safe copy</button><button id="accFixProj">Save a colour-blind and projector-ready copy</button></div></div>
+    <p class="note">Finds colours that look different to you but merge for colour-blind viewers or on a projector or smart board, which raises black, lowers contrast and fades colour. Each strip shows the palette as that viewer or screen sees it, dark to light. Pairs that already look alike to everyone are listed under Near duplicates instead. The buttons save a corrected copy and leave this palette alone.</p>
+    ${accessHTML(cs)}</section>
+
+  <section class="group"><h3>Contrast grid</h3>
+    <p class="note">Each cell shows the column colour as text on the row colour. AAA is 7:1, AA is 4.5:1, AA lg (large text and UI shapes) is 3:1. Faded cells fall below 3:1.</p>${grid}</section>
+
+  <section class="group"><h3>Dither test</h3>
+    <p class="note">Every pair mixed in a 50% checkerboard; the diagonal is each colour solid. Squint or zoom out to judge which blends read as a usable in-between tone.</p>
+    <div class="scroll"><canvas class="px" id="cvDither"></canvas></div></section>
+
+  <section class="group"><h3>Hue and lightness map</h3>
+    <p class="note">In the style of DawnBringer's analysis: hue across, perceived lightness up. Low-saturation colours sit in the grey column on the left. ${ui.scope==='all'&&p.groups.length>1?'Lines join each sub-palette from dark to light so you can check its ramp.':'The line joins colours from dark to light so you can check the ramp.'} Gaps show missing hues or values; clusters show crowding.</p>
+    <div class="scroll"><canvas id="cvHL"></canvas></div></section>
+
+  <section class="group"><h3>Hue and chroma wheel</h3>
+    <p class="note">Hue as angle, saturation (chroma) as distance from the centre. A spread-out wheel covers many moods; a tight cluster gives a unified palette.</p>
+    <canvas id="cvWheel"></canvas></section>
+
+  <section class="group"><h3>Coverage maps</h3>
+    <p class="note">Smooth colour fields redrawn using only your palette, like the swatch fields in Censor and DawnBringer's analysers. Even, well-sized patches mean that area is covered; one colour swallowing a large region means a gap there.</p>
+    <div class="maps">
+      <figure><canvas class="px" id="fHLv"></canvas><figcaption>Hue across, light to dark down · vivid</figcaption></figure>
+      <figure><canvas class="px" id="fHLm"></canvas><figcaption>Hue across, light to dark down · muted</figcaption></figure>
+      <figure><canvas class="px" id="fPv"></canvas><figcaption>Polar hue-lightness · vivid</figcaption></figure>
+      <figure><canvas class="px" id="fPm"></canvas><figcaption>Polar hue-lightness · muted</figcaption></figure>
+    </div></section>
+
+  <section class="group"><h3>Complementaries and desaturation</h3>
+    <p class="note">Each square runs from one hue on the left, through grey in the middle, to its opposite on the right, light at the top to dark at the bottom. It shows how the palette handles fading a colour out or shifting it toward its complement.</p>
+    <div class="maps">${COMP.map((c,i)=>`<figure><canvas class="px" id="fC${i}"></canvas><figcaption>${c[0]}</figcaption></figure>`).join('')}</div></section>
+
+  <section class="group"><h3>Primary ranges</h3>
+    <p class="note">A dark-to-light ramp for each hue family and for neutral grey, snapped to your palette. Few steps in a row means that family has little range.</p>
+    <div class="ranges">${RANGES.map((r,i)=>`<span class="note">${r[0]}</span><canvas class="px" id="fR${i}"></canvas>`).join('')}</div></section>
+
+  <section class="group"><h3>Lightness and chroma</h3>
+    <p class="note">Each colour's perceived lightness and saturation, sorted dark to light. A smooth staircase in lightness means evenly spaced values.</p>
+    <div class="bars"><span></span><span></span><span class="label">Lightness</span><span class="label">Chroma</span>${sorted.map(c=>{const o=oklch(c);return `<span class="dot" style="background:${c}"></span><span>${c.toUpperCase()}</span><div class="bar" title="Lightness ${Math.round(o.L*100)}"><i style="width:${(o.L*100).toFixed(1)}%"></i></div><div class="bar" title="Chroma ${Math.round(o.C*100)}"><i style="width:${Math.min(100,o.C/.25*100).toFixed(1)}%;background:${c}"></i></div>`}).join('')}</div></section>
+
+  <section class="group"><h3>Hue spectrum and temperature</h3>
+    <p class="note">Which hues carry the most saturation, and how the palette balances warm against cool. Neutral colours sit in the middle of the temperature chart.</p>
+    <div class="maps">
+      <figure><canvas id="cvSpec"></canvas><figcaption>Hue spectrum, weighted by saturation</figcaption></figure>
+      <figure><canvas id="cvTemp"></canvas><figcaption>Cool on the left, warm on the right</figcaption></figure>
+    </div></section>
+
+  <section class="group"><h3>Same value, different colour</h3>
+    ${(()=>{const m=pairs.map(([a,b])=>[a,b,Math.abs(oklch(a).L-oklch(b).L)]).filter(([a,b,d])=>d<.025&&dist(a,b)>.05).sort((x,y)=>x[2]-y[2]);
+      return m.length?`<p class="note">These pairs have nearly the same lightness, so they turn into the same grey. Useful for hue shifting within one value; risky when one has to stand out against the other.</p><div class="dups">${m.slice(0,15).map(([a,b,d])=>`<div class="row"><span class="dot" style="background:${a}"></span>${a.toUpperCase()}<span class="dot" style="background:${b}"></span>${b.toUpperCase()}<span class="dot" style="background:${gray(a)}"></span><span class="dot" style="background:${gray(b)}"></span><span class="note">lightness gap ${(d*100).toFixed(1)}</span></div>`).join('')}</div>`:'<p class="note">Every pair of distinct colours differs in lightness, so they all stay apart in greyscale.</p>'})()}
+  </section>
+
+  <section class="group"><h3>Value and colour-blindness check</h3>
+    <p class="note">Colours sorted dark to light, then simulated for common colour-vision differences. If two colours merge in greyscale they will be hard to tell apart in sprites at a distance.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${[['Normal vision',c=>c],['Greyscale (value)',gray],['Protanopia (red-blind)',c=>sim(c,CB.p)],['Deuteranopia (green-blind)',c=>sim(c,CB.d)],['Tritanopia (blue-blind)',c=>sim(c,CB.t)]].map(([t,f])=>`<div class="cb"><span class="note">${t}</span>${strip(f,sorted)}</div>`).join('')}
+    </div></section>
+
+  <section class="group"><h3>Near duplicates</h3>
+    ${dups.length?`<p class="note">These pairs are very close (difference under 5 on a 0–100 scale). Consider merging or pushing them apart.</p><div class="dups">${dups.slice(0,30).map(([a,b,d])=>`<div class="row"><span class="dot" style="background:${a}"></span>${a.toUpperCase()}<span class="dot" style="background:${b}"></span>${b.toUpperCase()}<span class="note">difference ${(d*100).toFixed(1)}</span></div>`).join('')}</div>`:'<p class="note">No near-duplicate colours. Every colour is distinct.</p>'}
+  </section>`;
+}
+function setupCv(c,w,h){const r=window.devicePixelRatio||1;c.width=w*r;c.height=h*r;c.style.width=w+'px';const x=c.getContext('2d');x.scale(r,r);return x}
+function drawAnalysis(p){
+  const cs=scopeColors(p),n=cs.length;if(n<2)return;
+  const st=getComputedStyle(document.documentElement),tok=k=>st.getPropertyValue(k).trim();
+  const panel=tok('--panel'),line=tok('--line'),muted=tok('--muted'),fg=tok('--fg');
+  // dither
+  const dc=$('cvDither'),px=Math.max(2,Math.min(5,Math.floor(760/(n*8)))),cell=px*8;
+  dc.width=dc.height=n*cell;const dx=dc.getContext('2d');
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++)for(let a=0;a<8;a++)for(let b=0;b<8;b++){dx.fillStyle=(a+b)%2?cs[i]:cs[j];dx.fillRect(j*cell+a*px,i*cell+b*px,px,px)}
+  // hue x lightness
+  const W=760,H=320,L0=60,R=W-14,T=14,B=H-30;
+  const hx=setupCv($('cvHL'),W,H);
+  hx.fillStyle=panel;hx.fillRect(0,0,W,H);
+  hx.font='11px "Space Mono", monospace';hx.textAlign='center';
+  for(let h=0;h<360;h+=2){hx.fillStyle=fromOklch(.72,.12,h);hx.fillRect(L0+h/360*(R-L0),B+4,(R-L0)/180+1,6)}
+  hx.strokeStyle=line;hx.lineWidth=1;
+  for(let h=0;h<=360;h+=60){const x=L0+h/360*(R-L0);hx.beginPath();hx.moveTo(x,T);hx.lineTo(x,B);hx.stroke();hx.fillStyle=muted;hx.fillText(h+'°',x,H-6)}
+  for(let l=0;l<=1;l+=.25){const y=B-l*(B-T);hx.beginPath();hx.moveTo(L0,y);hx.lineTo(R,y);hx.stroke()}
+  hx.fillStyle=muted;hx.fillText('grey',L0/2,H-6);hx.textAlign='left';hx.fillText('light',4,T+8);hx.fillText('dark',4,B);
+  const pos=c=>{const o=oklch(c);return[o.C<.03?L0/2:L0+o.H/360*(R-L0),B-o.L*(B-T)]};
+  const groups=ui.scope==='all'?p.groups.map(g=>g.colors):[cs];
+  hx.strokeStyle=muted;hx.lineWidth=1.5;hx.globalAlpha=.6;
+  groups.forEach(g=>{const s=g.slice().sort((a,b)=>oklch(a).L-oklch(b).L);if(s.length<2)return;hx.beginPath();s.forEach((c,i)=>{const[x,y]=pos(c);i?hx.lineTo(x,y):hx.moveTo(x,y)});hx.stroke()});
+  hx.globalAlpha=1;
+  cs.forEach(c=>{const[x,y]=pos(c);hx.beginPath();hx.arc(x,y,8,0,7);hx.fillStyle=c;hx.fill();hx.strokeStyle=fg;hx.lineWidth=1;hx.stroke()});
+  // wheel
+  const S=340,cx=S/2,cy=S/2,RR=S/2-24;
+  const wx=setupCv($('cvWheel'),S,S);
+  wx.fillStyle=panel;wx.fillRect(0,0,S,S);
+  for(let h=0;h<360;h+=2){wx.beginPath();wx.strokeStyle=fromOklch(.72,.12,h);wx.lineWidth=10;wx.arc(cx,cy,RR+12,h*Math.PI/180,(h+2.5)*Math.PI/180);wx.stroke()}
+  wx.strokeStyle=line;wx.lineWidth=1;
+  [.25,.5,.75,1].forEach(f=>{wx.beginPath();wx.arc(cx,cy,RR*f,0,7);wx.stroke()});
+  for(let h=0;h<360;h+=30){const a=h*Math.PI/180;wx.beginPath();wx.moveTo(cx,cy);wx.lineTo(cx+RR*Math.cos(a),cy+RR*Math.sin(a));wx.stroke()}
+  cs.forEach(c=>{const o=oklch(c),r=Math.min(o.C/.32,1)*RR,a=o.H*Math.PI/180;wx.beginPath();wx.arc(cx+r*Math.cos(a),cy+r*Math.sin(a),8,0,7);wx.fillStyle=c;wx.fill();wx.strokeStyle=fg;wx.stroke()});
+  // coverage fields
+  const near=nearest(cs);
+  paint('fHLv',120,60,3,(u,v)=>lab(.97-v*.9,.13,u*360),near);
+  paint('fHLm',120,60,3,(u,v)=>lab(.97-v*.9,.045,u*360),near);
+  const polar=C=>(u,v)=>{const dx=u*2-1,dy=v*2-1,r=Math.hypot(dx,dy);return r>1?null:lab(.97-r*.9,C,(Math.atan2(dy,dx)*180/Math.PI+360)%360)};
+  paint('fPv',80,80,2.25,polar(.13),near);
+  paint('fPm',80,80,2.25,polar(.045),near);
+  COMP.forEach(([,A,B],i)=>paint('fC'+i,48,48,3,(u,v)=>{const t=u*2-1;return lab(.95-v*.85,Math.abs(t)*.14,t<0?A:B)},near));
+  RANGES.forEach(([,H],i)=>paint('fR'+i,96,1,0,u=>lab(.08+u*.9,H==null?0:.11,H||0),near));
+  // histograms
+  const spec=new Array(36).fill(0);cs.forEach(c=>{const o=oklch(c);spec[Math.floor(o.H/10)%36]+=o.C});
+  bars('cvSpec',spec,i=>fromOklch(.7,.13,i*10+5));
+  const temp=new Array(21).fill(0);cs.forEach(c=>{const o=oklch(c),w=o.C*Math.cos((o.H-60)*Math.PI/180);temp[Math.max(0,Math.min(20,Math.round(w/.15*10)+10))]++});
+  bars('cvTemp',temp,i=>{const t=(i-10)/10;return fromOklch(.7,Math.abs(t)*.13,t<0?245:55)});
+  function bars(id,data,col){const W=320,H=130,x=setupCv($(id),W,H),mx=Math.max(...data)||1,bw=(W-8)/data.length;
+    x.fillStyle=panel;x.fillRect(0,0,W,H);
+    data.forEach((v,i)=>{const h=v/mx*(H-26);x.fillStyle=col(i);x.fillRect(4+i*bw+1,H-14-h,bw-2,h)});
+    x.strokeStyle=muted;x.beginPath();x.moveTo(4,H-13.5);x.lineTo(W-4,H-13.5);x.stroke();
+    data.forEach((v,i)=>{x.fillStyle=col(i);x.fillRect(4+i*bw,H-10,bw,6)})}
+}
+/* ---------- generator ---------- */
+const GEN={
+  between:['Fill in between','Adds evenly spaced in-between colours between neighbouring colours, sorted dark to light. Each sub-palette is filled separately.'],
+  extend:['Extend ramps','Continues each sub-palette darker and lighter, following its own hue and saturation trend. Darker steps lean cool and lighter steps lean warm by the hue shift amount.'],
+  ramps:['Ramps from hues','Groups the source into hue families and builds a full dark-to-light ramp for each, peaking in saturation where the source colour sits.'],
+  restyle:['Restyle','Keeps the lightness and saturation structure of every colour but rotates the hues and rescales saturation, for a sibling palette with the same feel.']};
+function lchLin(L,C,H){const a=C*Math.cos(H*Math.PI/180),b=C*Math.sin(H*Math.PI/180);
+  const l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,s=(L-.0894841775*a-1.291485548*b)**3;
+  return[4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.707614701*s]}
+function safe(L,C,H){L=Math.max(0,Math.min(1,L));C=Math.max(0,C);const ca=Math.cos(H*Math.PI/180),sa=Math.sin(H*Math.PI/180),in1=v=>v>=-.0005&&v<=1.0005;
+  const ok=c=>{const a=c*ca,b=c*sa,l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,s=(L-.0894841775*a-1.291485548*b)**3;
+    return in1(4.0767416621*l-3.3077115913*m+.2309699292*s)&&in1(-1.2684380046*l+2.6097574011*m-.3413193965*s)&&in1(-.0041960863*l-.7034186147*m+1.707614701*s)};
+  if(ok(C))return toHex(lchLin(L,C,H));let lo=0,hi=C;for(let k=0;k<20;k++){const m=(lo+hi)/2;ok(m)?lo=m:hi=m}return toHex(lchLin(L,lo,H))}
+function mixLab(x,y,t){const L=x[0]+(y[0]-x[0])*t,a=x[1]+(y[1]-x[1])*t,b=x[2]+(y[2]-x[2])*t;return safe(L,Math.hypot(a,b),Math.atan2(b,a)*180/Math.PI)}
+const hdiff=(a,b)=>((b-a+540)%360)-180;
+function towards(h,target,deg){const d=hdiff(h,target),m=Math.min(Math.abs(d),deg);return(h+Math.sign(d)*m+360)%360}
+function hueName(H){let best='Red',bd=999;RANGES.forEach(([n,h])=>{if(h==null)return;const d=Math.abs(hdiff(H,h));if(d<bd){bd=d;best=n}});return best}
+function genSource(p){const g=p.groups.find(g=>g.id===ui.scope);return g?[{name:g.name,colors:g.colors}]:p.groups.filter(g=>g.colors.length).map(g=>({name:g.name,colors:g.colors}))}
+function generate(p){
+  const G=ui.gen,src=genSource(p),out=[],byL=cs=>cs.slice().sort((a,b)=>oklch(a).L-oklch(b).L);
+  if(G.mode==='between')src.forEach(g=>{const s=byL(g.colors),r=[];s.forEach((c,i)=>{r.push(c);if(i<s.length-1)for(let k=1;k<=G.steps;k++)r.push(mixLab(oklab(c),oklab(s[i+1]),k/(G.steps+1)))});out.push({name:g.name,colors:r})});
+  if(G.mode==='extend')src.forEach(g=>{
+    const hex=byL(g.colors),s=hex.map(oklch),n=s.length;
+    const stepL=n>1?Math.max(.04,(s[n-1].L-s[0].L)/(n-1)):.1,turn=G.shift*stepL/.8;
+    const trend=(a,b)=>(!a||!b||a===b)?{dC:0,dH:0}:{dC:b.C-a.C,dH:(a.C<.02||b.C<.02)?0:hdiff(a.H,b.H)};
+    const run=(start,t,dir,target)=>{const r=[];let c=start;const room=dir<0?start.L-.06:.97-start.L,st=Math.min(stepL,room/G.ext);if(st<.012)return r;for(let k=0;k<G.ext;k++){const L=c.L+dir*st;
+      c={L,C:Math.max(0,(c.C+t.dC*.5)*.9),H:towards(c.H+t.dH*.5,target,c.C<.02?0:turn)};r.push(safe(c.L,c.C,c.H))}return r};
+    const dark=run(s[0],trend(s[1],s[0]),-1,shadeTo(s[0].H)).reverse(),light=run(s[n-1],trend(s[n-2],s[n-1]),1,75);
+    out.push({name:g.name,colors:[...dark,...hex,...light]})});
+  if(G.mode==='ramps'){
+    const cols=[...new Set(src.flatMap(g=>g.colors))].map(c=>({c,...oklch(c)})),clusters=[];
+    cols.filter(o=>o.C>=.03).sort((a,b)=>a.H-b.H).forEach(o=>{const k=clusters.find(k=>Math.abs(hdiff(k.H,o.H))<22);if(k)k.m.push(o);else clusters.push({H:o.H,m:[o]})});
+    const greys=cols.filter(o=>o.C<.03);if(greys.length)clusters.push({grey:true,m:greys});
+    clusters.forEach(k=>{const pk=k.m.reduce((a,b)=>b.C>a.C?b:a),Cpk=pk.C*G.chroma/100,n=G.ramp,r=[];
+      for(let i=0;i<n;i++){const L=.13+(.96-.13)*i/(n-1),dL=L-pk.L,C=Cpk*Math.max(.25,1-(dL/.75)**2);
+        const H=k.grey?pk.H:towards(pk.H,dL<0?shadeTo(pk.H):75,G.shift*Math.abs(dL)/.8);r.push(safe(L,C,H))}
+      out.push({name:k.grey?'Neutral ramp':hueName(pk.H)+' ramp',colors:r})})}
+  if(G.mode==='restyle')src.forEach(g=>out.push({name:g.name,colors:g.colors.map(c=>{const o=oklch(c);return safe(o.L,o.C*G.chroma/100,o.H+G.rot)})}));
+  return out.map(g=>({name:g.name,colors:[...new Set(g.colors)]})).filter(g=>g.colors.length);
+}
+function genHTML(p){const g=ui.gen;
+  const opt=(id,label,min,max,val,unit,modes)=>modes.includes(g.mode)?`<label class="ctl"><span class="label">${label}</span><output id="${id}o">${val}${unit}</output><input type="range" id="${id}" data-unit="${unit}" min="${min}" max="${max}" value="${val}"></label>`:'';
+  return `<div class="row"><span class="label">Source</span><select id="scope" aria-label="Source colours"><option value="all">All sub-palettes</option>${p.groups.map(x=>`<option value="${x.id}" ${ui.scope===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
+    <span class="label">Method</span><select id="gMode" aria-label="Method">${Object.entries(GEN).map(([k,v])=>`<option value="${k}" ${k===g.mode?'selected':''}>${v[0]}</option>`).join('')}</select></div>
+  <p class="note">${GEN[g.mode][1]}</p>
+  <div class="row callout"><span class="note" style="flex:1;min-width:200px">Want looser variations? Use this palette's sub-palettes as a style in the random generator, then add the results back here.</span><button id="genToRand">Open in random generator</button></div>
+  <div class="ctls">${opt('gSteps','Steps between',1,5,g.steps,'',['between'])}${opt('gExt','Colours added each end',1,4,g.ext,'',['extend'])}${opt('gRamp','Ramp length',3,12,g.ramp,'',['ramps'])}${opt('gShift','Hue shift',0,40,g.shift,'°',['ramps','extend'])}${opt('gRot','Rotate hues',0,359,g.rot,'°',['restyle'])}${opt('gChroma','Saturation',0,200,g.chroma,'%',['restyle','ramps'])}</div>
+  <div id="genOut" style="display:flex;flex-direction:column;gap:14px"></div>`}
+let lastGen=[];
+function updateGen(){const p=cur();if(!p||!$('genOut'))return;lastGen=generate(p);
+  const srcSet=new Set(all(p)),n=lastGen.reduce((s,g)=>s+g.colors.length,0);
+  $('genOut').innerHTML=n?`<div class="row" style="justify-content:space-between"><span class="note">${n} colours in ${lastGen.length} group${lastGen.length>1?'s':''}. Dots mark colours taken from the source.</span>
+    <div class="row"><button class="primary" id="genNew">Save as new palette</button><button id="genAdd">Add to this palette</button></div></div>
+    ${lastGen.map(g=>`<div class="group"><div class="row"><h3>${esc(g.name)}</h3><span class="label">${g.colors.length}</span></div>
+    <div class="gstrip">${g.colors.map(c=>`<button class="gs${srcSet.has(c)?' orig':''}" style="background:${c}" data-copy="${c}" title="${esc(colorName(c))} · ${c}" aria-label="Copy ${c}"></button>`).join('')}</div></div>`).join('')}`
+    :'<p class="empty">The source has no colours to work from yet.</p>'}
+/* ---------- random palettes ---------- */
+// Template families: h/c/l of the middle step, dh/dc = change in hue/chroma per step darker (measured from the source palette)
+const GRUV={fams:[
+  {name:'Red',h:29,c:.2,l:.55,dh:-1,dc:-.02},{name:'Green',h:109,c:.135,l:.66,dh:-2.5,dc:-.023},{name:'Yellow',h:78,c:.143,l:.73,dh:-6,dc:-.015},
+  {name:'Blue',h:199,c:.066,l:.58,dh:23,dc:.02},{name:'Purple',h:352,c:.111,l:.6,dh:-9,dc:.013},{name:'Aqua',h:145,c:.094,l:.65,dh:8,dc:-.013},{name:'Orange',h:46,c:.171,l:.62,dh:-6.5,dc:-.01}],
+  neut:[{name:'Dark',L:[.22,.55],c:.01,h:50},{name:'Light',L:[.78,.97],c:.055,h:90}]};
+const PRESETS={
+  none:{name:'Open (no theme)',win:[[180,180]],C:[.05,.15],L:[.14,.95],spread:'multi',neutral:true},
+  gruvbox:{name:'Gruvbox-style',tpl:GRUV,C:[.07,.2],L:[.22,.97],spread:'full',neutral:true},
+  computing90:{name:"'90s computing",win:[[265,12],[195,12],[105,10],[25,10],[145,10]],C:[.05,.14],L:[.2,.93],spread:'multi',neutral:true,nh:85,nc:.025},
+  scandi:{name:'Scandinavian',win:[[235,25],[65,20],[145,20],[25,10]],C:[.015,.06],L:[.3,.97],spread:'multi',neutral:true,nh:75,nc:.012},
+  sixties:{name:"'60s",win:[[55,12],[105,12],[140,15],[30,10],[200,15]],C:[.08,.15],L:[.3,.88],spread:'multi',neutral:true,nh:80,nc:.02},
+  seventies:{name:"'70s",win:[[50,12],[75,12],[100,12],[30,10],[130,15]],C:[.06,.13],L:[.2,.85],spread:'multi',neutral:true,nh:60,nc:.025},
+  eighties:{name:"'80s neon",win:[[345,12],[200,12],[300,15],[135,10]],C:[.15,.3],L:[.2,.9],spread:'multi',neutral:true,nh:290,nc:.03},
+  vapor:{name:'Vaporwave',win:[[345,15],[305,18],[205,15]],C:[.08,.17],L:[.5,.93],spread:'multi',neutral:false},
+  cyber:{name:'Cyberpunk',win:[[330,12],[195,12],[105,8]],C:[.12,.25],L:[.12,.9],spread:'multi',neutral:true,nh:280,nc:.03},
+  pastel:{name:'Pastel',win:[[180,180]],C:[.04,.08],L:[.8,.96],spread:'full',neutral:false},
+  earthy:{name:'Earthy',win:[[60,30],[125,25]],C:[.03,.09],L:[.18,.85],spread:'multi',neutral:true,nh:70,nc:.02},
+  autumn:{name:'Autumn',win:[[45,35]],C:[.07,.15],L:[.18,.88],spread:'analogous',neutral:true,nh:50,nc:.02},
+  ocean:{name:'Ocean',win:[[220,40]],C:[.04,.13],L:[.18,.93],spread:'analogous',neutral:true,nh:230,nc:.015},
+  monoscreen:{name:'Mono screen (CRT / handheld)',win:[[140,6]],C:[.04,.12],L:[.12,.9],spread:'mono',neutral:false}};
+const SAT={muted:[.02,.06],balanced:[.05,.12],vivid:[.11,.26]},SATMUL={auto:1,muted:.4,balanced:.75,vivid:1.3};
+const MOOD={dark:[.08,.6],full:[.12,.96],light:[.55,.97]},MOODSHIFT={auto:0,dark:-.15,full:0,light:.15};
+const MONOHUES=[['auto','Style default'],['140','Green phosphor'],['118','Handheld pea green'],['72','Amber'],['50','Orange plasma'],['200','Cyan'],['255','Blue'],['custom','Custom hue']];
+const NSTR={auto:null,none:0,subtle:.012,tinted:.028,strong:.05};
+const LEG={off:0,'3':3,'4.5':4.5,'7':7},LEGNAME={'3':'AA lg (3:1)','4.5':'AA (4.5:1)','7':'AAA (7:1)'};
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+/* ---------- saved palettes as generator styles ---------- */
+function circHue(list){let x=0,y=0;list.forEach(o=>{const w=Math.max(o.C,.001);x+=w*Math.cos(o.H*Math.PI/180);y+=w*Math.sin(o.H*Math.PI/180)});return(Math.atan2(y,x)*180/Math.PI+360)%360}
+function famFrom(name,o){
+  const pk=o.reduce((a,b)=>b.C>a.C?b:a),n=o.length,mL=o.reduce((s,x)=>s+x.L,0)/n;
+  const slope=f=>{let num=0,den=0;o.forEach(x=>{num+=(x.L-mL)*f(x);den+=(x.L-mL)**2});return den>1e-4?num/den:0};
+  const cl=(v,m)=>Math.max(-m,Math.min(m,v));
+  return{name,h:pk.H,c:pk.C,l:pk.L,dh:cl(-slope(x=>hdiff(pk.H,x.H))*.11,25),dc:cl(-slope(x=>x.C)*.11,.05)}}
+function palTemplate(p,sel,thr=.02){
+  const groups=p.groups.filter(g=>g.colors.length&&(!sel||sel.includes(g.id))),fams=[],neut=[],all=[];
+  groups.forEach(g=>{const o=g.colors.map(oklch);all.push(...o);
+    const greys=o.filter(x=>x.C<thr),chroma=o.filter(x=>x.C>=thr);
+    if(chroma.length<=greys.length&&greys.length){neut.push({name:g.name,L:[Math.min(...o.map(x=>x.L)),Math.max(...o.map(x=>x.L))],c:o.reduce((s,x)=>s+x.C,0)/o.length,h:circHue(o)});return}
+    if(greys.length)neut.push({name:g.name+' greys',L:[Math.min(...greys.map(x=>x.L)),Math.max(...greys.map(x=>x.L))],c:greys.reduce((s,x)=>s+x.C,0)/greys.length,h:circHue(greys)});
+    // a sub-palette that spans many hues is split into hue clusters, so a single "Main" group still gives several families
+    const span=Math.max(...chroma.map(a=>Math.max(...chroma.map(b=>Math.abs(hdiff(a.H,b.H))))));
+    if(span<=60){fams.push(famFrom(g.name,chroma));return}
+    const cls=[];chroma.slice().sort((a,b)=>a.H-b.H).forEach(x=>{const k=cls.find(k=>Math.abs(hdiff(circHue(k),x.H))<25);k?k.push(x):cls.push([x])});
+    cls.forEach(k=>fams.push(famFrom(g.name+' · '+hueName(circHue(k)),k)))});
+  if(!all.length)return null;
+  if(!fams.length&&thr>.005)return palTemplate(p,sel,thr/2.5);
+  const Ls=all.map(x=>x.L),Cs=all.filter(x=>x.C>=thr).map(x=>x.C);
+  const nc=neut.length?neut.reduce((s,n)=>s+n.c,0)/neut.length:.012;
+  return{name:p.name+' variant',fromPalette:p.id,tpl:{fams,neut:neut.length?neut:[{name:'Neutral',L:[Math.min(...Ls),Math.max(...Ls)],c:.012,h:fams[0]?circHue(fams.map(f=>({H:f.h,C:f.c}))):0}]},
+    C:Cs.length?[Math.min(...Cs),Math.max(...Cs)]:[.02,.06],L:[Math.min(...Ls),Math.max(...Ls)],spread:'full',neutral:true,nc}}
+function presetOf(key){
+  if(key&&key.startsWith('pal:')){const p=state.palettes.find(x=>x.id===key.slice(4));const t=p&&palTemplate(p,ui.rand.srcGroups);if(t&&t.tpl.fams.length)return t}
+  return PRESETS[key]||PRESETS.none}
+const REL={mono:[0],analogous:[-30,0,30],accent:[-30,0,30,180],comp:[0,180],near:[0,165],split:[0,150,210],dcomp:[0,60,180,240],compound:[0,30,180,210],triad:[0,120,240],tetrad:[0,90,180,270],penta:[0,72,144,216,288],golden:[0,137.5,275]};
+const RELS=[['auto','Style'],['mono','Mono'],['analogous','Analogous'],['accent','Analogous + accent'],['comp','Complementary'],['near','Near-complementary'],['split','Split complementary'],['dcomp','Double complementary'],['compound','Compound'],['triad','Triadic'],['tetrad','Tetradic (square)'],['penta','Pentadic'],['golden','Golden ratio'],['custom','Custom']],REL_UI=RELS.map(r=>r[0]);
+const WHEEL12=[['25','Red'],['55','Orange'],['75','Amber'],['100','Yellow'],['125','Lime'],['145','Green'],['175','Teal'],['200','Cyan'],['235','Azure'],['265','Blue'],['295','Violet'],['330','Magenta']];
+const RELNOTE={style:'Uses the style’s own choice of families.',mono:'One family.',analogous:'Three neighbouring families, 30° apart.',comp:'Two opposite families.',split:'A base family and the two either side of its opposite.',triad:'Three families evenly spaced around the wheel.',accent:'Three neighbouring families plus one opposite accent.',near:'Two families slightly off opposite (165°), for softer contrast.',dcomp:'Four families: two complementary pairs forming a rectangle.',compound:'Two neighbouring families and their two opposites.',tetrad:'Four families evenly spaced, 90° apart.',penta:'Five families evenly spaced, 72° apart.',golden:'Three families spaced by the golden angle (137.5°).',custom:'Exactly the families you place on the wheel or pick below.'};
+// The base hue in force: a locked one always, one set by dragging only until the next shuffle
+const baseOf=o=>o.baseHue!=null&&o.baseHue!=='auto'&&(o.baseLock||o.baseSeed===o.seed)?o.baseHue:'auto';
+const satMul=o=>o.sat==='custom'?o.satC/.11:SATMUL[o.sat];
+const resolvedSpread=o=>o.spread==='auto'||!REL_UI.includes(o.spread)?presetOf(o.preset).spread:o.spread;
+function genRandom(o){
+  const R=mulberry(o.seed),rnd=(a,b)=>a+(b-a)*R(),ri=(a,b)=>Math.floor(rnd(a,b+1)),pre=presetOf(o.preset);
+  const C=o.sat==='auto'?pre.C:o.sat==='custom'?[o.satC*.8,o.satC*1.2]:SAT[o.sat],L=o.mood==='auto'?pre.L:MOOD[o.mood],spread=resolvedSpread(o);
+  const seeds=o.seeds.split(/[\s,;]+/).map(norm).filter(Boolean),sl=seeds.map(c=>({c,...oklch(c)})),seedH=sl.filter(s=>s.C>=.03).map(s=>s.H);
+  const monoH=spread==='mono'&&o.monoHue!=='auto'?(o.monoHue==='custom'?o.monoDeg:+o.monoHue):null;
+  const warmCool=h=>{if(o.temp==='any'||seedH.includes(h))return h;const t=o.temp==='warm'?55:250;return towards(h,t,Math.abs(hdiff(h,t))*.45)};
+  const bh=baseOf(o),baseH=bh==='auto'?null:+bh;
+  const nearestFams=(pool,targets)=>{const used=new Set();return targets.map(t=>{let best=null;pool.forEach(f=>{if(used.has(f))return;if(!best||Math.abs(hdiff(f.h,t))<Math.abs(hdiff(best.h,t)))best=f});if(best)used.add(best);return best}).filter(Boolean)};
+  let fams,relBase=null;
+  if(pre.tpl){
+    // template builder: pick families from the template, vary them a little
+    let pool=pre.tpl.fams.map(f=>({...f,h:f.h+rnd(-7,7),c:f.c*rnd(.88,1.12)*satMul(o),l:Math.max(.25,Math.min(.85,f.l+rnd(-.04,.04)+MOODSHIFT[o.mood]))}));
+    const order=pool.map((f,i)=>[R(),i]).sort((a,b)=>a[0]-b[0]).map(x=>pool[x[1]]);
+    if(spread==='mono')pool=[baseH!=null?nearestFams(pool,[baseH])[0]:order[0]];
+    else if(REL[spread]){const b=relBase=baseH??order[0].h;pool=nearestFams(pool,REL[spread].map(d=>b+d))}
+    else if(spread==='custom'){const cs=(o.customHues||[]).map(Number);pool=cs.length?nearestFams(pool,cs):[order[0]]}
+    else if(spread==='multi'){const r=ri(4,5);pool=order.slice(0,r)}
+    if(monoH!=null)pool[0].h=monoH;
+    seedH.forEach(h=>{let b=pool[0];pool.forEach(f=>{if(Math.abs(hdiff(f.h,h))<Math.abs(hdiff(b.h,h)))b=f});b.h=h});
+    fams=pool.map(f=>({...f,h:warmCool(f.h),tpl:true}));
+  }else{
+    let wins=pre.win;if(o.temp!=='any'&&o.preset==='none')wins=[o.temp==='warm'?[50,60]:[235,55]];
+    const pickIn=w=>(w[0]+rnd(-w[1],w[1])+360)%360,randWin=()=>wins[Math.floor(R()*wins.length)];
+    let hues=[];
+    if(spread==='mono')hues=[monoH??seedH[0]??pickIn(randWin())];
+    else if(REL[spread]){const b=relBase=baseH??seedH[0]??pickIn(randWin());hues=REL[spread].map(d=>b+d+rnd(-4,4))}
+    else if(spread==='custom'){hues=(o.customHues||[]).map(d=>+d+rnd(-4,4));if(!hues.length)hues=[pickIn(randWin())]}
+    else if(spread==='full'){const k=ri(6,8),b=seedH[0]??rnd(0,360);hues=[...Array(k)].map((_,i)=>b+i*360/k+rnd(-8,8))}
+    else{const k=Math.max(ri(3,5),seedH.length);hues=seedH.slice();const gap=h=>hues.length?Math.min(...hues.map(x=>Math.abs(hdiff(x,h)))):999;let tries=0;while(hues.length<k&&tries<300){tries++;const h=pickIn(randWin());if(gap(h)>=35)hues.push(h);else if(tries%40===0){let b=h;for(let j=0;j<24;j++){const c=pickIn(randWin());if(gap(c)>gap(b))b=c}hues.push(b)}}}
+    hues=hues.map(h=>(h+360)%360);
+    if(monoH==null)seedH.forEach(h=>{if(!hues.some(x=>Math.abs(hdiff(x,h))<15)){let i=0;hues.forEach((x,j)=>{if(Math.abs(hdiff(x,h))<Math.abs(hdiff(hues[i],h)))i=j});hues[i]=h}});
+    fams=hues.map(h=>({h:warmCool(h),c:rnd(C[0],C[1]),name:hueName(h)}));
+  }
+  // neutrals (always draw the random numbers so other settings do not reshuffle)
+  const ncR=rnd(.008,.02),tintFam=o.nTint!=='auto'?fams[+o.nTint]:null,strength=NSTR[o.nStrength];
+  let neut=[];
+  if(o.neutral){
+    const base=pre.tpl?pre.tpl.neut:[{name:'Neutral',L,c:pre.nc??ncR,h:pre.nh??(fams[0]?.h||0)}];
+    neut=base.map(n=>({...n,h:tintFam?tintFam.h:n.h,c:strength!=null?strength:n.c,neutral:true}));
+  }
+  const em=o.emissive&&spread==='mono',emL=t=>.05+(L[1]-.05)*t**2.2,emC=(c,t)=>c*(.2+.95*t**.7)*(t>.93?.5:1);
+  const total=fams.length+neut.length,per=Math.max(2,Math.round(o.count/total)),out=[];
+  fams.forEach(f=>{const r=[];
+    if(em){for(let i=0;i<per;i++){const t=o.ramps?i/(per-1):R();r.push(safe(emL(t),emC(f.c,t),towards(f.h,75,o.shift*t*.3)))}}
+    else if(f.tpl){const sp=Math.min(.11,.7/Math.max(1,per-1));
+      for(let i=0;i<per;i++){const k=i-(per-1)/2,l=f.l+k*sp;
+        r.push(o.ramps?safe(l,Math.max(0,f.c-k*f.dc),f.h-k*f.dh):safe(f.l+rnd(-.3,.25),f.c*rnd(.7,1.15),f.h+rnd(-8,8)))}}
+    else if(o.ramps){const span=L[1]-L[0],lo=L[0]+rnd(0,.04),hi=L[1]-rnd(0,.04),pk=rnd(L[0]+span*.3,L[1]-span*.2);
+      for(let i=0;i<per;i++){const l=lo+(hi-lo)*i/(per-1),dL=l-pk,c=f.c*Math.max(.3,1-(dL/.8)**2);
+        r.push(safe(l,c,towards(f.h,dL<0?shadeTo(f.h):75,o.shift*Math.abs(dL)/.8)+rnd(-3,3)))}}
+    else for(let i=0;i<per;i++)r.push(safe(rnd(L[0],L[1]),f.c*rnd(.6,1.25),f.h+rnd(-12,12)));
+    out.push({name:f.name+(o.ramps?' ramp':''),colors:r,h:f.h})});
+  neut.forEach(n=>{const r=[];for(let i=0;i<per;i++){const l=o.ramps?n.L[0]+(n.L[1]-n.L[0])*i/(per-1):rnd(n.L[0],n.L[1]);r.push(safe(l,n.c,n.h))}
+    out.push({name:n.name==='Neutral'?(o.ramps?'Neutral ramp':'Neutrals'):n.name+(o.ramps?' neutrals':''),colors:r,h:n.h,neutral:true})});
+  // seeds replace the closest generated colour
+  sl.forEach(s=>{let g=out.find(g=>g.neutral&&s.C<.03)||out.reduce((a,b)=>(!b.neutral&&Math.abs(hdiff(b.h,s.H))<Math.abs(hdiff(a.h,s.H)))?b:a,out.find(g=>!g.neutral)||out[0]);
+    if(!g)return;let i=0;g.colors.forEach((c,j)=>{if(Math.abs(oklch(c).L-s.L)<Math.abs(oklch(g.colors[i]).L-s.L))i=j});g.colors[i]=s.c});
+  if(LEG[o.legible])makeLegible(out,LEG[o.legible],new Set(seeds),legAimOf(o),legHuesOf(o));
+  if(o.cvd||o.proj){const keys=[...(o.cvd?['p','d','t']:[]),...(o.proj?['proj']:[])],lo=o.proj?.16:.02,hi=o.proj?.9:.99;if(o.proj)accBoost(out,lo,hi);accRepair(out,keys,{keep:new Set(seeds),lo,hi})}
+  if(o.ramps||o.sortL)out.forEach(g=>g.colors.sort((a,b)=>oklch(a).L-oklch(b).L));
+  const seen={},res=out.map(g=>{seen[g.name]=(seen[g.name]||0)+1;return{name:g.name+(seen[g.name]>1?' '+seen[g.name]:''),colors:[...new Set(g.colors)],neutral:!!g.neutral}});
+  res.fams=fams.map(f=>f.tpl?f.name:hueName(f.h));res.famH=fams.map(f=>f.h);res.baseH=relBase==null?null:(relBase%360+360)%360;res.styleNH=pre.tpl?pre.tpl.neut[0].h:(pre.nh??(fams[0]?.h||0));return res;
+}
+// Legibility: pick the anchor colours (palette extremes or the neutrals), push them apart, then move other colours until they reach the target against them
+const LEGAIM=[['dark','Dark mode'],['balanced','Balanced'],['light','Light mode'],['none','No target']];
+const legAimOf=o=>o.legAim||'balanced';
+const legHuesOf=o=>!o.neutral||!!o.legHues;
+// The two backgrounds: the darkest and lightest neutral, or the darkest and lightest colour of any family
+function legAnchors(groups,hues){const neu=groups.filter(g=>g.neutral&&g.colors.length);if(!neu.length)hues=true;
+  const byY=(hues?groups:neu).flatMap(g=>g.colors).sort((a,b)=>luminance(a)-luminance(b));return{hues,dk:byY[0],lt:byY[byY.length-1]}}
+// Which background each colour has to read on: 'dk' (light text on dark) or 'lt' (dark text on light)
+function legSides(cs,aim,A){const side=new Map();
+  if(aim==='dark')cs.forEach(c=>side.set(c,'dk'));else if(aim==='light')cs.forEach(c=>side.set(c,'lt'));
+  else if(aim==='balanced'){const r=cs.slice().sort((a,b)=>luminance(a)-luminance(b)),n=r.length;r.forEach((c,i)=>side.set(c,i<Math.floor(n/2)?'lt':i>=Math.ceil(n/2)?'dk':(ratio(c,A.dk)>=ratio(c,A.lt)?'dk':'lt')))}
+  else cs.forEach(c=>side.set(c,ratio(c,A.dk)>=ratio(c,A.lt)?'dk':'lt'));return side}
+const legTargets=(groups,A)=>[...new Set(groups.filter(g=>A.hues||!g.neutral).flatMap(g=>g.colors))].filter(c=>c!==A.dk&&c!==A.lt);
+function makeLegible(out,t,keep,aim,hues){
+  const A0=legAnchors(out,hues);if(!A0.dk)return;const d0=A0.dk,l0=A0.lt;let dk=d0,lt=l0;const step=(c,dL)=>{const o=oklch(c);return safe(Math.max(0,Math.min(1,o.L+dL)),o.C,o.H)};
+  // shape the backgrounds like a real theme: a properly dark or light page, and enough room between the two ends
+  if(aim==='dark'&&!keep.has(d0))while(oklch(dk).L>.2)dk=step(dk,-.02);
+  if(aim==='light'&&!keep.has(l0))while(oklch(lt).L<.96)lt=step(lt,.02);
+  const want=Math.min(16,t*1.9);
+  if(d0!==l0)for(let i=0;i<60&&ratio(dk,lt)<want;i++){const canD=!keep.has(d0)&&aim!=='light',canL=!keep.has(l0)&&aim!=='dark';
+    if((i%2||!canD)&&canL)lt=step(lt,.03);else if(canD)dk=step(dk,-.03);else break}
+  const A={hues:A0.hues,dk,lt},side=legSides(legTargets(out,A0),aim,A);
+  out.forEach(g=>g.colors=g.colors.map(c=>{if(c===d0)return dk;if(c===l0)return lt;const sd=side.get(c);if(!sd||keep.has(c))return c;
+    const ref=sd==='dk'?dk:lt;if(ratio(c,ref)>=t)return c;const o=oklch(c),up=sd==='dk';let lo=up?o.L:0,hi=up?1:o.L;
+    for(let k=0;k<22;k++){const m=(lo+hi)/2,ok=ratio(safe(m,o.C,o.H),ref)>=t;if(up)ok?hi=m:lo=m;else ok?lo=m:hi=m}
+    return safe(up?hi:lo,o.C,o.H)}));
+}
+function legReport(groups,t,o){const aim=legAimOf(o),A=legAnchors(groups,legHuesOf(o));if(!A.dk)return'';
+  const targets=legTargets(groups,A),side=legSides(targets,aim,A),grade=v=>v>=7?'AAA':v>=4.5?'AA':v>=3?'AA lg':'below 3:1';
+  const okOn=c=>ratio(c,side.get(c)==='dk'?A.dk:A.lt)>=t,pass=targets.filter(okOn).length,nd=targets.filter(c=>side.get(c)==='dk').length;
+  const what=A.hues?'the darkest and lightest colours':'the darkest and lightest neutrals';
+  const sum={dark:`${pass} of ${targets.length} colours read as light text on the dark background.`,light:`${pass} of ${targets.length} colours read as dark text on the light background.`,
+    balanced:`${pass} of ${targets.length} colours reach the target: ${nd} on the dark background and ${targets.length-nd} on the light one.`,none:`${pass} of ${targets.length} colours reach the target on whichever background suits them.`}[aim];
+  const picks=groups.filter(g=>!g.neutral||A.hues).map(g=>g.colors.filter(c=>side.has(c)).reduce((a,b)=>!a||oklch(b).C>oklch(a).C?b:a,null)).filter(Boolean).slice(0,8);
+  const bgs=aim==='dark'?[A.dk]:aim==='light'?[A.lt]:null;
+  return `<section class="group"><div class="row"><h3>Legibility</h3><span class="label">target ${LEGNAME[o.legible]} · ${LEGAIM.find(x=>x[0]===aim)[1]}</span></div>
+  <p class="note">${sum} Backgrounds are ${what}${!o.neutral?' (neutrals are off)':''}.</p>
+  <div class="signs">${picks.map(c=>{const bg=bgs?bgs[0]:(side.get(c)==='dk'?A.dk:A.lt),v=ratio(c,bg);return `<div class="sign" style="background:${bg};color:${c}"><b>Platform 4</b><span>${v.toFixed(1)}:1 · ${grade(v)}</span></div>`}).join('')}</div></section>`;
+}
+// Stepped slider: a rail of stops. dis = unavailable stops, implied = what "Style" resolves to, colors = optional dot colours
+function steps(key,label,opts,val,{dis=[],implied=null,off=false,shown=null,note='',dots=false}={}){
+  const cur=shown??val,curLabel=(opts.find(o=>o[0]===cur)||opts[0])[1];
+  return `<div class="ctl stepctl${off?' off':''}"><span class="label">${label}</span><output>${dots?esc(curLabel):''}</output>
+  <div class="steps${dots?' dots':''}" role="radiogroup" aria-label="${label}" data-step="${key}" style="--n:${opts.length}">${opts.map(([v,t,col])=>{
+    const d=off||dis.includes(v),on=v===cur,imp=val==='auto'&&v===implied;
+    return `<button type="button" role="radio" aria-checked="${on}" tabindex="${on?0:-1}" class="st${on?' on':''}${imp?' implied':''}${d?' dis':''}" data-v="${v}" ${d?'disabled':''} title="${esc(t)}${imp?' (style default)':''}${d?' (not available)':''}" ${col?`style="--dot:${col}"`:''}><span>${t}</span></button>`}).join('')}</div>
+  ${note?`<p class="note">${note}</p>`:''}</div>`}
+const classify={
+  sat:p=>{const m=(p.C[0]+p.C[1])/2;return m<.06?'muted':m<.12?'balanced':'vivid'},
+  mood:p=>p.L[0]>.5?'light':p.L[1]<.65?'dark':'full',
+  nStrength:p=>{const c=p.nc??.014;return c<.006?'none':c<.02?'subtle':c<.04?'tinted':'strong'}};
+const LEGNOTE={dark:'Built like a dark theme: the darkest background becomes properly dark and every colour lightens until it reads on it.',balanced:'Half the colours are aimed at the dark background and half at the light one, so the palette works for both.',light:'Built like a light theme: the lightest background becomes properly light and every colour darkens until it reads on it.',none:'Each colour only has to read on whichever background it is already closest to.'};
+const defName=o=>presetOf(o.preset).name+' '+(o.seed%10000);
+// On narrow screens the sidebar sits above the main area, so bring the newly opened screen into view
+function revealMain(){try{if(matchMedia('(max-width:760px)').matches){const m=$('main');if(m)m.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})}}catch(e){}}
+function tog(id,label,on,{dis=false,note=''}={}){return `<div class="togw"><label class="tog${dis?' off':''}"><input type="checkbox" role="switch" id="${id}" ${on?'checked':''} ${dis?'disabled':''}><span class="tk" aria-hidden="true"></span><span>${label}</span></label>${note?`<p class="note">${note}</p>`:''}</div>`}
+function randomHTML(){const o=ui.rand,sp=resolvedSpread(o),pre=presetOf(o.preset),tpl=!!pre.tpl,srcP=pre.fromPalette?state.palettes.find(x=>x.id===pre.fromPalette):null;
+  const chk=(id,label,on,dis)=>tog(id,label,on,{dis});
+  const rng=(id,label,min,max,val,unit,extra='',off=false)=>`<label class="ctl${off?' off':''}"><span class="label">${label}</span><output id="${id}o">${val}${unit}</output><input type="range" id="${id}" min="${min}" max="${max}" value="${val}" ${extra} ${off?'disabled':''}></label>`;
+  const legOn=o.legible!=='off';
+  const styleHue=pre.win?pre.win[0][0]:140;
+  return `<div id="randPanel" style="display:flex;flex-direction:column;gap:16px">
+  <div class="rhead"><div style="min-width:0;flex:1"><input id="rName" class="titlein" value="${esc(o.name||defName(o))}" aria-label="Palette name" title="Click to rename"><p class="note">Controls left on “Style” follow the chosen style; a dashed ring shows what the style is using. Shuffle for another variation with the same settings.</p></div>
+  <div class="row"><button id="rShuffle">Shuffle</button><button class="primary" id="rSave">Save palette</button>${srcP?`<button id="rAddSrc">Add to “${esc(srcP.name)}”</button>`:''}<button class="ghost" id="rClose">Close</button></div></div>
+  <div id="randPeek" class="peek" aria-live="polite"></div>
+  ${randSettingsHTML()}
+  <div id="randOut" style="display:flex;flex-direction:column;gap:14px"></div></div>`}
+function relHTML(o,sp,pre,tpl,styleHue){const cur=REL_UI.includes(o.spread)?o.spread:'auto',S=hwState();
+  return `<div class="ctl" style="grid-column:1/-1"><span class="label">Colour relation</span><span></span>
+    <div class="chues relchips" data-step="spread" role="radiogroup" aria-label="Colour relation" style="grid-column:1/-1">${RELS.map(([v,t])=>`<button type="button" class="chue${v===cur?' on':''}" data-v="${v}" role="radio" aria-checked="${v===cur}">${t}</button>`).join('')}</div>
+    <p class="note" style="grid-column:1/-1">${cur==='auto'?RELNOTE.style+(pre.spread&&RELNOTE[pre.spread]?' Here: '+RELNOTE[pre.spread].toLowerCase():''):RELNOTE[cur]}${tpl&&S.kind!=='style'?' This style has fixed families, so the nearest ones are used.':''}</p></div>
+  <div class="hwrap"><div class="hwheel"><canvas id="hwPlane" aria-hidden="true"></canvas><svg id="hwOver" viewBox="-1 -1 2 2" aria-hidden="true"></svg>
+    <div id="hwCtl" class="hwctl${S.kind==='style'?' ro':''}" role="slider" tabindex="0" aria-label="${S.kind==='mono'?'Screen hue':S.kind==='custom'?'Turn all families':'Base hue'}" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0"></div></div>
+    <div id="hwSide" class="hwside"></div></div>
+  ${sp==='custom'?`<div class="ctl" style="grid-column:1/-1"><span class="label">Quick picks</span><span class="note" style="justify-self:end">${(o.customHues||[]).length} chosen</span>
+    <div class="chues" style="grid-column:1/-1">${WHEEL12.map(([d,n])=>`<button type="button" class="chue${(o.customHues||[]).includes(d)?' on':''}" data-chue="${d}" aria-pressed="${(o.customHues||[]).includes(d)}" title="${n}"><span style="background:${safe(.72,.14,+d)}"></span>${n}</button>`).join('')}</div></div>`:''}
+  ${sp==='mono'?`<div class="sub"><span class="label">Mono-hue options</span>
+    ${steps('monoHue','Screen hue',[['auto','Style default',safe(.72,.14,styleHue)],...MONOHUES.slice(1,-1).map(([v,t])=>[v,t,safe(.72,.14,+v)]),['custom','Wheel',safe(.72,.14,o.monoDeg)]],o.monoHue,{dots:true})}
+    ${tog('rEmissive','Emissive display (CRT, VFD, LED): mostly dark shades, few bright ones',o.emissive)}</div>`:''}`}
+/* ---------- harmony wheel, after Harmony Genny from delphitools (0BSD licence) ----------
+   An OKLCH plane at the palette's middle lightness, hue around and chroma outwards, with a hue ring.
+   Large dots are the families the relation asks for; small dots are the colours actually generated. */
+const HW={reach:.33,plane:.86,bead:.08},hwCache=new Map();
+const hwPt=(h,d)=>[d*Math.sin(h*Math.PI/180),-d*Math.cos(h*Math.PI/180)],hwWrap=h=>(h%360+360)%360;
+function hwMaxC(L,H){let lo=0,hi=HW.reach;for(let k=0;k<16;k++){const m=(lo+hi)/2;lchLin(L,m,H).every(v=>v>=-.0005&&v<=1.0005)?lo=m:hi=m}return lo}
+const HW_TICKS=[...Array(24)].map((_,i)=>{const a=HW.plane+(1-HW.plane)*.3,[x1,y1]=hwPt(i*15,i%2?(a+1)/2:a),[x2,y2]=hwPt(i*15,1.01);return `M${x1.toFixed(4)} ${y1.toFixed(4)}L${x2.toFixed(4)} ${y2.toFixed(4)}`}).join('');
+function hwPlane(L,size){const key=L.toFixed(3)+'|'+size;let c=hwCache.get(key);if(c)return c;
+  c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d'),img=ctx.createImageData(size,size),d=img.data;
+  const bins=Math.max(720,Math.ceil(Math.PI*size)),most=[],ring=[],g255=v=>Math.round(gam(v)*255);
+  for(let i=0;i<bins;i++){const h=i*360/bins;most.push(hwMaxC(L,h)/HW.reach);ring.push(lchLin(.74,Math.min(.12,hwMaxC(.74,h)),h).map(g255))}
+  const half=size/2,px=1/(HW.plane*half),r0=HW.plane+.012;
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){const dx=x+.5-half,dy=y+.5-half,r=Math.hypot(dx,dy)/half;if(r>1)continue;
+    const hue=hwWrap(Math.atan2(dx,-dy)*180/Math.PI),bin=Math.min(Math.floor(hue/360*bins),bins-1);let rgb,a;
+    if(r<=HW.plane){const rad=r/HW.plane;a=Math.min(1,(most[bin]-rad)/px+.5,(HW.plane-r)*half+.5);if(a<=0)continue;rgb=lchLin(L,Math.min(rad,most[bin])*HW.reach,hue).map(g255)}
+    else if(r>=r0){rgb=ring[bin];a=Math.min(1,(1-r)*half)}else continue;
+    const k=(y*size+x)*4;d[k]=rgb[0];d[k+1]=rgb[1];d[k+2]=rgb[2];d[k+3]=Math.round(a*255)}
+  ctx.putImageData(img,0,0);if(hwCache.size>12)hwCache.clear();hwCache.set(key,c);return c}
+function hwState(){const o=ui.rand,sp=resolvedSpread(o),pre=presetOf(o.preset),R=lastRand||[],fh=R.famH||[];
+  const Cr=o.sat==='custom'?[o.satC,o.satC]:o.sat==='auto'?pre.C:SAT[o.sat],Lr=o.mood==='auto'?pre.L:MOOD[o.mood];
+  const S={sp,c:(Cr[0]+Cr[1])/2,L:Math.max(.5,Math.min(.78,(Lr[0]+Lr[1])/2)),base:null};
+  if(sp==='mono'){S.kind='mono';S.base=o.monoHue==='custom'?o.monoDeg:o.monoHue!=='auto'?+o.monoHue:(fh[0]??140);S.beads=[{off:0,base:true}]}
+  else if(REL[sp]){S.kind='rel';S.base=baseOf(o)!=='auto'?+baseOf(o):(R.baseH??fh[0]??0);S.beads=REL[sp].map(off=>({off,base:off===0}))}
+  else if(sp==='custom'){S.kind='custom';S.beads=(o.customHues||[]).map((h,i)=>({abs:+h,i,base:false}))}
+  else{S.kind='style';S.beads=fh.map(h=>({abs:h,base:false}))}
+  S.beads.forEach(b=>{b.h=hwWrap(b.abs??S.base+b.off);const d=Math.min(S.c,hwMaxC(S.L,b.h))/HW.reach*HW.plane;[b.x,b.y]=hwPt(b.h,d)});return S}
+function hwSVG(S){const f=n=>n.toFixed(4),B=S.beads;
+  const dots=(lastRand||[]).filter(g=>!g.neutral).flatMap(g=>g.colors).map(c=>{const k=oklch(c),[x,y]=hwPt(k.H,Math.min(k.C/HW.reach,1)*HW.plane);return `<circle class="hwdot" cx="${f(x)}" cy="${f(y)}" r=".026" fill="${c}"/>`}).join('');
+  const shape=B.length>2?`<polygon class="hwshape" points="${[...B].sort((a,b)=>a.h-b.h).map(b=>f(b.x)+','+f(b.y)).join(' ')}"/>`:'';
+  return `<path class="hwticks" d="${HW_TICKS}"/>${shape}<path class="hwspokes" d="${B.map(b=>`M0 0L${f(b.x)} ${f(b.y)}`).join('')}"/>${dots}<circle class="hwhub" r=".018"/>`
+    +[...B].sort((a,b)=>a.base-b.base).map(b=>{const r=b.base?HW.bead:HW.bead*.82,k=r*.5,lock=S.kind==='rel'&&ui.rand.baseLock;
+      return `<circle class="hwbead${b.base?' base':''}" cx="${f(b.x)}" cy="${f(b.y)}" r="${r}" fill="${safe(S.L,S.c,b.h)}"/>`
+      +(lock?`<g class="hwlock" transform="translate(${f(b.x)} ${f(b.y)}) scale(${f(k)})"><path d="M-.55-.1V-.45a.55.55 0 0 1 1.1 0V-.1" fill="none" stroke-width=".28"/><rect x="-.85" y="-.15" width="1.7" height="1.2" rx=".2"/></g>`:'')}).join('')}
+function hwSide(S){const o=ui.rand,deg=h=>Math.round(hwWrap(h))+'°';
+  const head=S.kind==='rel'?`<span class="label">Base hue</span><output class="hwbig">${deg(S.base)}</output><span>${hueName(S.base)}</span>`
+    :S.kind==='mono'?`<span class="label">Screen hue</span><output class="hwbig">${deg(S.base)}</output><span>${hueName(S.base)}</span>`
+    :S.kind==='custom'?`<span class="label">Families</span><output class="hwbig">${S.beads.length}</output><span>${S.beads.map(b=>hueName(b.h)).join(', ')||'One picked at random'}</span>`
+    :`<span class="label">Style families</span><output class="hwbig">${S.beads.length}</output><span>${S.beads.map(b=>hueName(b.h)).join(', ')}</span>`;
+  const chroma=`<span class="label">Chroma</span><output>${S.c.toFixed(3)}</output><span class="note">${o.sat==='custom'?'Set on the wheel':'From Saturation'}</span>${o.sat==='custom'?'<button type="button" data-hw="chroma">Use Saturation instead</button>':''}`;
+  const how={rel:'Drag the wheel to turn all families together. Drag a large dot in or out to change chroma. Arrow keys turn 1°, Page Up/Down 15°.',
+    mono:'Drag the wheel to set the screen hue. Drag the dot in or out to change chroma.',
+    custom:'Click the outer ring to add a family. Drag a dot to move it, or off the wheel to remove it. Drag empty space to turn them all.',
+    style:'The style picks these families on each shuffle. Choose a colour relation above to steer them from the wheel.'}[S.kind];
+  return `<div class="hwread">${head}</div>${S.kind==='rel'?tog('hwRand',o.baseLock?'Lock base hue during shuffle':'New base hue on every shuffle',!o.baseLock,{note:o.baseLock?'The base hue stays where it is when you shuffle. Turn this switch on to let each shuffle pick a new one.':'Each shuffle picks a new base hue. Dragging the wheel sets it for this variation only. Turn the switch off to lock it.'}):''}<div class="hwread">${chroma}</div>
+    <p class="note">${how} Small dots are the colours generated, plotted by hue and chroma.</p>`}
+function hwRefresh(){const sv=$('hwOver');if(!sv)return;const S=hwState();sv.innerHTML=hwSVG(S);$('hwSide').innerHTML=hwSide(S);
+  const c=$('hwCtl');if(S.base!=null){c.setAttribute('aria-valuenow',Math.round(hwWrap(S.base)));c.setAttribute('aria-valuetext',Math.round(hwWrap(S.base))+'° '+hueName(S.base))}
+  const cv=$('hwPlane'),size=Math.round(cv.clientWidth*(window.devicePixelRatio||1))||260,key=S.L.toFixed(3)+'|'+size;
+  if(cv.dataset.k!==key){cv.width=cv.height=size;cv.getContext('2d').drawImage(hwPlane(S.L,size),0,0);cv.dataset.k=key}}
+// turn the relation (or every custom family) by d degrees
+function hwTurn(d){const o=ui.rand,S=hwState();if(!d)return;
+  if(S.kind==='rel'){o.baseHue=String(Math.round(hwWrap(S.base+d)));o.baseSeed=o.seed}
+  else if(S.kind==='mono'){o.monoHue='custom';o.monoDeg=Math.round(hwWrap(S.base+d))}
+  else if(S.kind==='custom'){o.customHues=(o.customHues||[]).map(h=>String(Math.round(hwWrap(+h+d))));o.nTint='auto'}}
+let hwDrag=null,hwFrame=0;
+const hwPolar=e=>{const b=$('hwCtl').getBoundingClientRect(),dx=(e.clientX-b.left)/(b.width/2)-1,dy=(e.clientY-b.top)/(b.height/2)-1;return{h:hwWrap(Math.atan2(dx,-dy)*180/Math.PI),r:Math.hypot(dx,dy)}};
+const hwSoon=()=>{cancelAnimationFrame(hwFrame);hwFrame=requestAnimationFrame(updateRandom)};
+document.addEventListener('pointerdown',e=>{if(e.target.id!=='hwCtl')return;const S=hwState(),p=hwPolar(e);if(p.r>1.02||S.kind==='style')return;
+  const [x,y]=hwPt(p.h,p.r),i=S.beads.findIndex(b=>Math.hypot(x-b.x,y-b.y)<HW.bead*1.4),o=ui.rand;
+  if(i>=0)hwDrag={bead:i};
+  else if(S.kind==='custom'&&p.r>HW.plane){o.customHues=[...(o.customHues||[]),String(Math.round(p.h))];o.nTint='auto';hwDrag={bead:o.customHues.length-1,added:true};hwSoon()}
+  else hwDrag={last:p.h,acc:0};
+  e.target.setPointerCapture(e.pointerId);e.target.focus();e.preventDefault()});
+document.addEventListener('pointermove',e=>{if(!hwDrag||e.target.id!=='hwCtl')return;const o=ui.rand,S=hwState(),p=hwPolar(e);
+  if(hwDrag.bead==null){hwDrag.acc+=hdiff(hwDrag.last,p.h);hwDrag.last=p.h;const k=Math.trunc(hwDrag.acc);if(k){hwDrag.acc-=k;hwTurn(k)}}
+  else{const b=S.beads[hwDrag.bead];if(!b)return;hwDrag.out=S.kind==='custom'&&p.r>1.15;
+    if(S.kind==='rel'){o.baseHue=String(Math.round(hwWrap(p.h-b.off)));o.baseSeed=o.seed}else if(S.kind==='mono'){o.monoHue='custom';o.monoDeg=Math.round(p.h)}else{o.customHues=o.customHues.slice();o.customHues[hwDrag.bead]=String(Math.round(p.h))}
+    if(!hwDrag.added&&p.r<=1){o.sat='custom';o.satC=Math.max(.01,Math.min(.32,Math.round(p.r/HW.plane*HW.reach*1000)/1000))}}
+  hwSoon()});
+const hwEnd=e=>{if(!hwDrag)return;const o=ui.rand;if(hwDrag.out){o.customHues=o.customHues.filter((_,i)=>i!==hwDrag.bead);o.nTint='auto'}hwDrag=null;cancelAnimationFrame(hwFrame);renderMain();const c=$('hwCtl');if(c)c.focus({preventScroll:true})};
+document.addEventListener('pointerup',hwEnd);document.addEventListener('pointercancel',hwEnd);
+document.addEventListener('keydown',e=>{if(e.target.id!=='hwCtl')return;const d={ArrowRight:1,ArrowUp:1,ArrowLeft:-1,ArrowDown:-1,PageUp:15,PageDown:-15}[e.key];if(!d)return;e.preventDefault();hwTurn(d);updateRandom()});
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-hw]');if(!b)return;if(b.dataset.hw==='chroma'){ui.rand.sat='auto';renderMain()}});
+function randSettingsHTML(){const o=ui.rand,sp=resolvedSpread(o),pre=presetOf(o.preset),tpl=!!pre.tpl,srcP=pre.fromPalette?state.palettes.find(x=>x.id===pre.fromPalette):null;
+  const chk=(id,label,on,dis)=>tog(id,label,on,{dis});
+  const rng=(id,label,min,max,val,unit,extra='',off=false)=>`<label class="ctl${off?' off':''}"><span class="label">${label}</span><output id="${id}o">${val}${unit}</output><input type="range" id="${id}" min="${min}" max="${max}" value="${val}" ${extra} ${off?'disabled':''}></label>`;
+  const legOn=o.legible!=='off',styleHue=pre.win?pre.win[0][0]:140;
+  return `<fieldset class="pnl wide">
+    <div class="urows">
+      <div class="urow"><div class="urowh"><span class="label sect">Style</span><p class="note">Sets the starting hues, saturation and lightness for every control left on “Style”.</p></div><div class="urowc">
+        <label class="ctl"><span class="label">Style</span><span></span><select id="rPreset" style="grid-column:1/-1"><optgroup label="Built-in styles">${Object.entries(PRESETS).map(([k,v])=>`<option value="${k}" ${k===o.preset?'selected':''}>${v.name}</option>`).join('')}</optgroup>${state.palettes.length?`<optgroup label="From your palettes">${state.palettes.map(p=>`<option value="pal:${p.id}" ${'pal:'+p.id===o.preset?'selected':''}>${esc(p.name)}</option>`).join('')}</optgroup>`:''}</select></label>
+        ${srcP?`<div class="sub"><span class="label">Source sub-palettes</span><p class="note">Each becomes a family with its own hue drift and saturation curve. Sub-palettes that are mostly grey become neutrals; ones that span many hues are split.</p>${srcP.groups.filter(g=>g.colors.length).map(g=>`<label class="tog"><input type="checkbox" role="switch" class="srcg" data-g="${g.id}" ${!o.srcGroups||o.srcGroups.includes(g.id)?'checked':''}><span class="tk" aria-hidden="true"></span><span style="flex:1;min-width:0">${esc(g.name)}<span class="strip" style="margin-top:3px">${g.colors.map(c=>`<span style="background:${c}"></span>`).join('')}</span></span></label>`).join('')}</div>`:''}
+        <label class="ctl"><span class="label">Seed colours</span><span></span><input id="rSeeds" value="${esc(o.seeds)}" placeholder="#c4551f #1f6f78" style="grid-column:1/-1"></label>
+        <p class="note">Seeds are kept exactly and pull the nearest hue family onto them.</p></div></div>
+      <div class="urow"><div class="urowh"><span class="label sect">Hue families</span><p class="note">Which colour families appear and how they relate.</p></div><div class="urowc">
+
+          ${relHTML(o,sp,pre,tpl,styleHue)}
+          ${steps('temp','Temperature',[['cool','Cool'],['any','Neutral'],['warm','Warm']],o.temp)}
+          ${steps('sat','Saturation',[['auto','Style'],['muted','Muted'],['balanced','Balanced'],['vivid','Vivid'],...(o.sat==='custom'?[['custom','Wheel']]:[])],o.sat,{implied:classify.sat(pre),note:o.sat==='custom'?'Set by dragging a dot on the wheel. Pick another stop to go back.':''})}
+        </div></div>
+      <div class="urow"><div class="urowh"><span class="label sect">Within each family</span><p class="note">How each family runs from dark to light.</p></div><div class="urowc">
+          ${steps('mood','Lightness',[['auto','Style'],['dark','Dark'],['full','Full range'],['light','Light']],o.mood,{implied:classify.mood(pre)})}
+          ${rng('rCount','Colours in total (about)',4,48,o.count,'')}
+          ${chk('rRamps','Build as ramps',o.ramps)}
+          ${rng('rShift','Hue shift along ramps',0,40,o.shift,'°','',!o.ramps)}
+          ${chk('rSortL','Sort by lightness'+(o.ramps?' (always on for ramps)':''),o.sortL||o.ramps,o.ramps)}
+        </div></div>
+      <div class="urow"><div class="urowh"><span class="label sect">Neutrals</span><p class="note">Greys and near-greys. They can also act as the backgrounds for legibility.</p></div><div class="urowc">
+        ${chk('rNeutral','Include neutrals',o.neutral)}
+        <div id="nTintWrap"></div>
+        ${steps('nStrength','Tint strength',[['auto','Style'],['none','Grey'],['subtle','Subtle'],['tinted','Tinted'],['strong','Strong']],o.nStrength,{implied:classify.nStrength(pre),off:!o.neutral})}</div></div>
+      <div class="urow"><div class="urowh"><span class="label sect">Legibility &amp; access</span><p class="note">Adjusts colours so they read clearly for everyone and on any screen. Leave off for freer, more artistic palettes.</p></div><div class="urowc">
+        ${steps('legible','Target',[['off','Off'],['3','AA lg 3:1'],['4.5','AA 4.5:1'],['7','AAA 7:1']],o.legible)}
+        ${steps('legAim','Aim for dark or light mode',LEGAIM,legAimOf(o),{off:!legOn,note:legOn?LEGNOTE[legAimOf(o)]:'Pick a target to turn legibility on.'})}
+        ${tog('rLegHues','Measure against hues instead of neutrals',legHuesOf(o),{dis:!legOn||!o.neutral,note:!o.neutral?'Neutrals are off, so the darkest and lightest hues act as the backgrounds.':legHuesOf(o)?'The darkest and lightest colours of any family act as the backgrounds.':'The darkest and lightest neutrals act as the backgrounds, like the page colours of a theme.'})}
+        ${tog('rCvd','Colour-blind safe',o.cvd,{note:'Keeps every colour distinguishable for red-, green- and blue-blind viewers by spreading out any that would merge. Works fully up to about 16–20 colours.'})}
+        ${tog('rProj','Projector and smart board',o.proj,{note:'Stronger colours, no faint tints or near-blacks, and colours kept apart after a projector washes them out. With colour-blind safe on too, aim for about 12 colours.'})}</div></div>
+      </div></fieldset>`}
+let lastRand=[];
+function readRand(){const o=ui.rand,v=id=>$(id)?$(id).value:'';
+  Object.assign(o,{count:+v('rCount'),shift:+v('rShift'),ramps:$('rRamps').checked,neutral:$('rNeutral').checked,seeds:v('rSeeds'),name:$('rName')?(v('rName').trim()===defName(o)?'':v('rName')):o.name});
+  if(!o.ramps)o.sortL=$('rSortL').checked;
+  if($('rEmissive'))o.emissive=$('rEmissive').checked;if($('rCvd'))o.cvd=$('rCvd').checked;if($('rLegHues')&&!$('rLegHues').disabled)o.legHues=$('rLegHues').checked;if($('rProj'))o.proj=$('rProj').checked;if($('hwRand')){o.baseHue=String(Math.round(hwWrap(hwState().base)));o.baseSeed=o.seed;o.baseLock=!$('hwRand').checked}
+  if($('rMonoDeg')){o.monoDeg=+v('rMonoDeg');$('rMonoDego').textContent=o.monoDeg+'°';$('rMonoDeg').style.accentColor=safe(.7,.13,o.monoDeg)}
+  $('rCounto').textContent=o.count;$('rShifto').textContent=o.shift+'°'}
+function updateRandom(){if(!$('randOut')&&!$('nTintWrap'))return;const o=ui.rand;
+  lastRand=genRandom(o);
+  if($('nTintWrap')){if(o.nTint!=='auto'&&+o.nTint>=lastRand.fams.length){o.nTint='auto';lastRand=genRandom(o)}
+    $('nTintWrap').innerHTML=steps('nTint','Tint from',[['auto','Style default',safe(.72,.1,lastRand.styleNH)],...lastRand.fams.map((n,i)=>[String(i),n+' family',safe(.72,.14,lastRand.famH[i])])],o.nTint,{dots:true,off:!o.neutral});}
+  hwRefresh();
+  if(!$('randOut'))return;
+  const seeds=new Set(o.seeds.split(/[\s,;]+/).map(norm).filter(Boolean)),flat=lastRand.flatMap(g=>g.colors);
+  if(o.ramps||o.sortL)flat.sort((a,b)=>oklch(a).L-oklch(b).L);
+  if($('randPeek'))$('randPeek').innerHTML=`<div class="strip big">${flat.map(c=>`<span style="background:${c}" title="${c}"></span>`).join('')}</div><span class="note">${flat.length} colours · ${lastRand.length} group${lastRand.length===1?'':'s'}</span>`;
+  $('randOut').innerHTML=(LEG[o.legible]?legReport(lastRand,LEG[o.legible],o):'')
+    +(o.cvd||o.proj?`<section class="group"><h3>Accessibility check</h3><p class="note">How this palette holds up. Each strip shows the palette as that viewer or screen sees it.</p>${accessHTML(flat,{compact:true,hint:true,keys:[...(o.cvd?['p','d','t']:[]),...(o.proj?['proj']:[])]})}</section>`:'')
+    +lastRand.map(g=>`<div class="group"><div class="row"><h3>${esc(g.name)}</h3><span class="label">${g.colors.length}</span></div><div class="gstrip">${g.colors.map(c=>`<button class="gs${seeds.has(c)?' orig':''}" style="background:${c}" data-copy="${c}" title="${esc(colorName(c))} · ${c}" aria-label="Copy ${c}"></button>`).join('')}</div></div>`).join('')}
+/* ---------- colour names: CSS named colours plus common art and design names ---------- */
+const NAMEDATA="f0f8ffAlice blue;faebd7Antique white;00ffffAqua;7fffd4Aquamarine;f0ffffAzure mist;f5f5dcBeige;ffe4c4Bisque;000000Black;ffebcdBlanched almond;0000ffBlue;8a2be2Blue violet;a52a2aBrown;deb887Burlywood;5f9ea0Cadet blue;7fff00Chartreuse;d2691eChocolate;ff7f50Coral;6495edCornflower blue;fff8dcCornsilk;dc143cCrimson;00008bDark blue;008b8bDark cyan;b8860bDark goldenrod;a9a9a9Dark grey;006400Dark green;bdb76bDark khaki;8b008bDark magenta;556b2fDark olive green;ff8c00Dark orange;9932ccDark orchid;8b0000Dark red;e9967aDark salmon;8fbc8fDark sea green;483d8bDark slate blue;2f4f4fDark slate grey;00ced1Dark turquoise;9400d3Dark violet;ff1493Deep pink;00bfffDeep sky blue;696969Dim grey;1e90ffDodger blue;b22222Firebrick;fffaf0Floral white;228b22Forest green;ff00ffFuchsia;dcdcdcGainsboro;f8f8ffGhost white;ffd700Gold;daa520Goldenrod;808080Grey;008000Green;adff2fGreen yellow;f0fff0Honeydew;ff69b4Hot pink;cd5c5cIndian red;4b0082Indigo;fffff0Ivory;f0e68cKhaki;e6e6faLavender;fff0f5Lavender blush;7cfc00Lawn green;fffacdLemon chiffon;add8e6Light blue;f08080Light coral;e0ffffLight cyan;fafad2Light goldenrod;d3d3d3Light grey;90ee90Light green;ffb6c1Light pink;ffa07aLight salmon;20b2aaLight sea green;87cefaLight sky blue;778899Light slate grey;b0c4deLight steel blue;ffffe0Light yellow;00ff00Lime;32cd32Lime green;faf0e6Linen;800000Maroon;66cdaaMedium aquamarine;0000cdMedium blue;ba55d3Medium orchid;9370dbMedium purple;3cb371Medium sea green;7b68eeMedium slate blue;00fa9aSpring green;48d1ccMedium turquoise;c71585Medium violet red;191970Midnight blue;f5fffaMint cream;ffe4e1Misty rose;ffe4b5Moccasin;ffdeadNavajo white;000080Navy;fdf5e6Old lace;808000Olive;6b8e23Olive drab;ffa500Orange;ff4500Orange red;da70d6Orchid;eee8aaPale goldenrod;98fb98Pale green;afeeeePale turquoise;db7093Pale violet red;ffefd5Papaya whip;ffdab9Peach puff;cd853fPeru;ffc0cbPink;dda0ddPlum;b0e0e6Powder blue;800080Purple;663399Rebecca purple;ff0000Red;bc8f8fRosy brown;4169e1Royal blue;8b4513Saddle brown;fa8072Salmon;f4a460Sandy brown;2e8b57Sea green;fff5eeSeashell;a0522dSienna;c0c0c0Silver;87ceebSky blue;6a5acdSlate blue;708090Slate grey;fffafaSnow;4682b4Steel blue;d2b48cTan;008080Teal;d8bfd8Thistle;ff6347Tomato;40e0d0Turquoise;ee82eeViolet;f5deb3Wheat;ffffffWhite;f5f5f5White smoke;ffff00Yellow;9acd32Yellow green;36454fCharcoal;343434Jet;353839Onyx;483c32Taupe;e0b0ffMauve;800020Burgundy;722f37Wine;b7410eRust;e2725bTerracotta;cc7722Ochre;ffdb58Mustard;bcb88aSage;8a9a5bMoss;3eb489Mint;00a86bJade;50c878Emerald;007ba7Cerulean;0047abCobalt;3f00ffUltramarine;003153Prussian blue;1560bdDenim;ccccffPeriwinkle;c8a2c8Lilac;3d0734Aubergine;c04000Mahogany;635147Umber;704214Sepia;fffdd0Cream;c2b280Ecru;f0dc82Buff;ffe5b4Peach;fbceb1Apricot;e34234Vermilion;ff2400Scarlet;ffbf00Amber;f4c430Saffron;93c572Pistachio;ace1afCeladon;005f6aPetrol;614051Eggplant;c54b8cMulberry;ff007fRose;de5d83Blush;c19a6bCamel;6f4e37Coffee;954535Chestnut;cd7f32Bronze;b87333Copper;b5a642Brass;899499Pewter;2a3439Gunmetal;b2beb5Ash;e3dac9Bone;f1e9d2Parchment;93e9beSea foam;c0808aDusty rose;4f5d6aSlate;738276Smoke;928e85Stone;b66a50Clay;9c4a3aBrick;4a0000Oxblood;1b1f3bInk;4e3a3aPlum brown;a89a8bDriftwood;bba99aMushroom;d6c8b0Oatmeal;c9b99aPutty;6f6d55Olive grey;4e5481Dusk;9c8aa5Heather;d4d6dbFog;41424cGraphite;2a2627Soot;2e2428Raisin;645452Wenge;01796fPine;006a4eBottle green;568203Avocado;da9100Harvest gold;cc5500Burnt orange;f28500Tangerine;33ff66Phosphor green;ffb000Amber phosphor;0048baAbsolute Zero;b0bf1aAcid green;7cb9e8Aero;b284beAfrican violet;72a0c1Air superiority blue;db2d43Alizarin;c46210Alloy orange;eed9c4Almond;9f2b68Amaranth deep purple;f19cbbAmaranth pink;ab274fAmaranth purple;3b7a57Amazon;9966ccAmethyst;3ddc84Android green;c88a65Antique brass;665d1eAntique bronze;915c83Antique fuchsia;841b2dAntique ruby;d0ff14Arctic lime;4b6f44Artichoke green;e9d66bArylide yellow;ff9966Atomic tangerine;fdee00Aureolin;007fffAzure;89cff0Baby blue;a1caf1Baby blue eyes;f4c2c2Baby pink;fefefaBaby powder;ff91afBaker-Miller pink;fae7b5Banana Mania;da1884Barbie Pink;7c0a02Barn red;848482Battleship grey;bcd4e6Beau blue;9f8170Beaver;2e5894B'dazzled blue;9c2542Big dip o'ruby;3d2b1fBistre;967117Bistre brown;cae00dBitter lemon;fe6f5eBittersweet;3d0c02Black bean;54626fBlack coral;3b3c36Black olive;bfafb2Black Shadows;a57164Blast-off bronze;318ce7Bleu de France;ace5eeBlizzard blue;660000Blood red;1f75feBlue (Crayola);0093afBlue (Munsell);0087bdBlue (NCS);0018a8Blue (Pantone);333399Blue (pigment);a2a2d0Blue bell;6699ccBlue-gray (Crayola);5dadecBlue jeans;126180Blue sapphire;5072a7Blue yonder;3c69e7Bluetiful;79443bBole;cb4154Brick red;d891efBright lilac;ffaa1dBright yellow (Crayola);004225British racing green;af6e4dBrown sugar;7bb661Bud green;a17a74Burnished brown;e97451Burnt sienna;8a3324Burnt umber;bd33a4Byzantine;702963Byzantium;91a3b0Cadet grey;006b3cCadmium green;ed872dCadmium orange;a67b5bCafé au lait;4b3621Café noir;a3c1adCambridge blue;efbbccCameo pink;ffff99Canary;ffef00Canary yellow;e4717aCandy pink;c41e3aCardinal;00cc99Caribbean green;960018Carmine;d70040Carmine (M&P);ffa6c9Carnation pink;b31b1bCarnelian;56a0d3Carolina blue;ed9121Carrot orange;703642Catawba;c95a49Cedar Chest;b2ffffCeleste;de3163Cerise;2a52beCerulean blue;6d9bc3Cerulean frost;1dacd6Cerulean (Crayola);0040ffCerulean (RGB);f7e7ceChampagne;f1ddcfChampagne pink;e68facCharm pink;80ff00Chartreuse (web);ffb7c5Cherry blossom pink;e23d28Chili red;de6fa1China pink;aa381eChinese red;856088Chinese violet;ffb200Chinese yellow;7b3f00Chocolate (traditional);98817bCinereous;cd607eCinnamon Satin;e4d00aCitrine;9fa91fCitron;7f1734Claret;b9d9ebColumbia Blue;f88379Congo pink;175a6cConnor's Lakefront;8c92acCool grey;da8a67Copper (Crayola);ad6f69Copper penny;cb6d51Copper red;996666Copper rose;ff3800Coquelicot;893f45Cordovan;fbec5dCorn;2e2d88Cosmic cobalt;fff8e7Cosmic latte;81613cCoyote brown;ffbcd9Cotton candy;9e1b32Crimson (UA);00b7ebCyan (process);58427cCyber grape;ffd300Cyber yellow;f56fa1Cyclamen;fed85dDandelion;654321Dark brown;5d3954Dark byzantium;536878Dark electric blue;1a2421Dark jungle green;543d37Dark liver (horses);301934Dark purple;3c1414Dark sienna;8cbed6Dark sky blue;177245Dark spring green;555555Davy's grey;da3287Deep cerise;fad6a5Deep champagne;b94e48Deep chestnut;004b49Deep jungle green;ff9933Deep saffron;4a646cDeep Space Sparkle;7e5e60Deep taupe;2243b6Denim blue;edc9afDesert sand;4a412aDrab dark brown;00009cDuke blue;efdfbbDutch white;555d50Ebony;1b1b1bEerie black;f0ead6Eggshell;ccff00Electric lime;bf00ffElectric purple;8f00ffElectric violet;6c3082Eminence;b48395English lavender;ab4b52English red;cc474bEnglish vermillion;563c5cEnglish violet;00ff40Erin;96c8a2Eton blue;801818Falu red;b53389Fandango;de5285Fandango pink;e5aa70Fawn;4f7942Fern green;6c541eField drab;ff5470Fiery rose;683068Finn;ce2029Fire engine red;e25822Flame;eedc82Flax;a2006dFlirt;856d4dFrench bistre;0072bbFrench blue;fd3f92French fuchsia;86608eFrench lilac;9efd38French lime;d473d4French mauve;fd6c9eFrench pink;c72c48French raspberry;77b5feFrench sky blue;8806ceFrench violet;e936a7Frostbite;c154c1Fuchsia (Crayola);e48400Fulvous;87421fFuzzy Wuzzy;e49b0fGamboge;007f66Generic viridian;6082b6Glaucous;ab92b3Glossy grape;00ab66GO green;d4af37Gold (metallic);e6be8aGold (Crayola);85754eGold Fusion;996515Golden brown;fcc200Golden poppy;ffdf00Golden yellow;00573fGotham green;676767Granite gray;a8e4a0Granny Smith apple;bebebeGray (X11 gray);1cac78Green (Crayola);00a877Green (Munsell);009f6bGreen (NCS);00ad43Green (Pantone);00a550Green (pigment);1164b4Green-blue;a7f432Green Lizard;6eaea1Green Sheen;3fff00Harlequin;ff7a00Heat Wave;df73ffHeliotrope;aa98a9Heliotrope gray;f400a1Hollywood cerise;006db0Honolulu blue;49796bHooker's green;ff1dceHot magenta;355e3bHunter green;71a6d2Iceberg;319177Illuminating emerald;ed2939Imperial red;b2ec5dInchworm;4c516dIndependence;138808India green;e3a857Indian yellow;00416aIndigo dye;130a8fInternational Klein Blue;ba160cInternational orange (engineering);c0362cInternational orange (Golden Gate Bridge);b3446cIrresistible;f4f0ecIsabelline;9d2933Japanese carmine;5b3256Japanese violet;f8de7eJasmine;a50b5eJazzberry jam;f4ca16Jonquil;bdda57June bud;29ab87Jungle green;4cbb17Kelly green;3ab09eKeppel;e8f48cKey lime;c3b091Khaki (web);882d17Kobe;e79fc4Kobi;6b4423Kobicha;512888KSU purple;d6caddLanguid lavender;26619cLapis lazuli;ffff66Laser lemon;a9ba9dLaurel green;cf1020Lava;b57edcLavender (floral);c4c3d0Lavender gray;fff700Lemon;cca01dLemon curry;fdff00Lemon glacier;f6eabeLemon meringue;fff44fLemon yellow;ffff9fLemon yellow (Crayola);545aa7Liberty;93cceaLight cornflower blue;c8ad7fLight French beige;fed8b1Light orange;c5cbe1Light periwinkle;ae98aaLilac Luster;bfff00Lime (color wheel);195905Lincoln green;decc9cLion;6ca0dcLittle boy blue;674c47Liver;b86d29Liver (dogs);6c2e1fLiver (organ);987456Liver chestnut;ffbd88Macaroni and Cheese;cc3336Madder Lake;f653a6Magenta (Crayola);ca1f7bMagenta (dye);d0417eMagenta (Pantone);ff0090Magenta (process);9f4576Magenta haze;aaf0d1Magic mint;f2e8d7Magnolia;f2c649Maize (Crayola);6050dcMajorelle blue;0bda51Malachite;979aaaManatee;f37a48Mandarin;fdbe02Mango;ff8243Mango Tango;74c365Mantis;880085Mardi Gras;eaa221Marigold;00488bMarian blue;c32148Maroon (Crayola);b03060Maroon (X11);915f6dMauve taupe;ef98aaMauvelous;47abccMaximum blue;30bfbfMaximum blue green;acace6Maximum blue purple;5e8c31Maximum green;d9e650Maximum green yellow;733380Maximum purple;d92121Maximum red;a63a79Maximum red purple;fafa37Maximum yellow;f2ba49Maximum yellow red;4c9141May green;73c2fbMaya blue;e2062cMedium candy apple red;af4035Medium carmine;f3e5abMedium champagne;f8b878Mellow apricot;febaadMelon;d3af37Metallic gold;0a7e8cMetallic Seaweed;9c7c38Metallic Sunburst;e4007cMexican pink;7ed4e6Middle blue;8dd9ccMiddle blue green;8b72beMiddle blue purple;8b8680Middle grey;4d8c57Middle green;acbf60Middle green yellow;d982b5Middle purple;e58e73Middle red;a55353Middle red purple;ffeb00Middle yellow;ecb176Middle yellow red;702670Midnight;004953Midnight green (eagle green);ffc40cMikado yellow;ffdae9Mimi pink;e3f988Mindaro;36747dMing;f5e050Minion yellow;98ff98Mint green;bbb477Misty moss;ff948eMona Lisa;8da399Morning blue;30ba8fMountain Meadow;997a8dMountbatten pink;18453bMSU green;c8509bMulberry (Crayola);317873Myrtle green;d65282Mystic;ad4379Mystic maroon;f6adc6Nadeshiko pink;fada5eNaples yellow;1974d2Navy blue (Crayola);4666ffNeon blue;39ff14Neon green;fe4164Neon fuchsia;214fc6New Car;d7837fNew York pink;727472Nickel;a4ddedNon-photo blue;e9ffdbNyanza;43302eOld burgundy;cfb53bOld gold;796878Old lavender;673147Old mauve;c08081Old rose;3c341fOlive Drab #7;b5b35cOlive green;9ab973Olivine;a8c3bcOpal;b784a7Opera mauve;ff7538Orange (Crayola);ff5800Orange (Pantone);ff9f00Orange peel;ff681fOrange-red;ff5349Orange-red (Crayola);fa5b3dOrange soda;f5bd1fOrange-yellow;f8d568Orange-yellow (Crayola);f2bdcdOrchid pink;e29cd2Orchid (Crayola);2d383aOuter space (Crayola);ff6e4aOutrageous Orange;002147Oxford blue;841617OU Crimson red;1ca9c9Pacific blue;006600Pakistan green;682860Palatinate purple;bed3e5Pale aqua;9bc4e2Pale cerulean;ed7a9bPale Dogwood;fadaddPale pink;fae6faPale purple (Pantone);ecebbdPale spring bud;78184aPansy purple;009b7dPaolo Veronese green;e63e62Paradise pink;dea5a4Pastel pink;1f005ePaua;ffcba4Peach (Crayola);d1e231Pear;b768a2Pearly purple;c3cde6Periwinkle (Crayola);e12c2cPermanent Geranium Lake;1c39bbPersian blue;00a693Persian green;32127aPersian indigo;d99058Persian orange;f77fbePersian pink;701c1cPersian plum;cc3333Persian red;fe28a2Persian rose;ec5800Persimmon;470659Petunia;8ba8b7Pewter Blue;df00ffPhlox;000f89Phthalo blue;123524Phthalo green;2e2787Picotee blue;c30b4ePictorial carmine;fddde6Piggy pink;2a2f23Pine green (dark);d74894Pink (Pantone);ffddf4Pink lace;d8b2d1Pink lavender;f78fa7Pink Sherbet;e5e4e2Platinum;5946b2Plump Purple;5da493Polished Pine;be4f62Popstar;ff5a36Portland Orange;e1ca7aPrairie gold;f58025Princeton orange;00b9f2Process Cyan;cc8899Puce;644117Pullman Brown (UPS Brown);ff7518Pumpkin;9f00c5Purple (Munsell);a020f0Purple (X11);9678b6Purple mountain majesty;4e5180Purple navy;fe4edaPurple pizzazz;9c51b6Purple Plum;436b95Queen blue;e8ccd7Queen pink;a6a6a6Quick Silver;8e3a59Quinacridone magenta;ff355eRadical Red;242124Raisin black;fbab60Rajah;e30b5dRaspberry;d68a59Raw sienna;826644Raw umber;ff33ccRazzle dazzle rose;e3256bRazzmatazz;8d4e85Razzmic Berry;ee204dRed (Crayola);f2003cRed (Munsell);c40233Red (NCS);ed1c24Red (pigment);fe2712Red (RYB);913831Red ocher (Red ochre);e40078Red-purple;fd3a4aRed Salsa;c0448fRed-violet (Crayola);922b3eRed-violet (Color wheel);a45a52Redwood;002387Resolution blue;777696Rhythm;004040Rich black;010b13Rich black (FOGRA29);010203Rich black (FOGRA39);444c38Rifle green;00ccccRobin egg blue;8a7f80Rocket metallic;a91101Rojo Spanish red;838996Roman silver;f9429eRose bonbon;9e5e6fRose Dust;674846Rose ebony;e32636Rose madder;ff66ccRose pink;c21e56Rose red;905d5dRose taupe;ab4e52Rose vale;65000bRosewood;d40000Rosso corsa;002366Royal blue (dark);7851a9Royal purple;ce4676Ruber;d10056Rubine red;e0115fRuby;9b111eRuby red;a81c07Rufous;80461bRusset;679267Russian green;32174dRussian violet;da2c43Rusty red;043927Sacramento State green;ff7800Safety orange;ff6700Safety orange (blaze orange);eed202Safety yellow;23297aSt. Patrick's blue;ff91a4Salmon pink;507d2aSap green;0f52baSapphire;0067a5Sapphire blue;2d5da1Sapphire (Crayola);cba135Satin sheen gold;ffd800School bus yellow;66ff66Screamin' Green;00ffcdSea green (Crayola);612086Seance;59260bSeal brown;764374Secret;ffba00Selective yellow;8a795dShadow;778ba5Shadow blue;009e60Shamrock green;8fd400Sheen green;d98695Shimmering Blush;5fa778Shiny Shamrock;fc0fc0Shocking pink;ff6fffShocking pink (Crayola);c9c0bbSilver (Crayola);aaa9adSilver (Metallic);acacacSilver chalice;c4aeadSilver pink;bfc1c2Silver sand;cb410bSinopia;ff3855Sizzling Red;ffdb00Sizzling Sunrise;007474Skobeloff;76d7eaSky blue (Crayola);cf71afSky magenta;299617Slimy green;c84186Smitten;100c08Smoky black;893843Solid pink;757575Sonic silver;1d2951Space cadet;807532Spanish bistre;0070b8Spanish blue;d10047Spanish carmine;989898Spanish gray;009150Spanish green;e86100Spanish orange;f7bfbeSpanish pink;e60026Spanish red;00fffeSpanish sky blue;4c2882Spanish violet;007f5cSpanish viridian;a7fc00Spring bud;87ff2aSpring Frost;007bb8Star command blue;cc33ccSteel pink;e4d96fStraw;fa5053Strawberry;ff9361Strawberry Blonde;33cc33Strong Lime Green;914e75Sugar Plum;ffcc33Sunglow;e3ab57Sunray;cf6ba9Super pink;a83731Sweet Brown;d44500Syracuse Orange;d99a6cTan (Crayola);fb4d46Tart Orange;8b8589Taupe gray;d0f0c0Tea green;367588Teal blue;00ffbfTechnobotanica;cf3476Telemagenta;cd5700Tenné (tawny);fc89acTickle Me Pink;0abab5Tiffany Blue;dbd7d2Timberwolf;eee600Titanium yellow;86a1a9Tourmaline;00755eTropical rainforest;2d68c4True Blue;1c05b3Trypan Blue;3e8edeTufts blue;deaa88Tumbleweed;00ffefTurquoise blue;a0d6b4Turquoise green;7c4848Tuscan red;c09999Tuscany;8a496bTwilight lavender;66023cTyrian purple;0033aaUA blue;d9004cUA red;4166f5Ultramarine blue;fc6c85Ultra red;ffddcaUnbleached silk;009edbUnited Nations blue;a50021University of Pennsylvania red;014421UP Forest green;7b1113UP maroon;ae2029Upsdell red;afdbf5Uranian blue;004f98USAFA blue;664228Van Dyke brown;f38fa9Vanilla ice;5271ffVantg blue;c5b358Vegas gold;c80815Venetian red;43b3aeVerdigris;d9381eVermilion (Plochere);963d7fViolet (crayola);8601afViolet (RYB);324ab2Violet-blue;766ec8Violet-blue (Crayola);f75394Violet-red;f0599cViolet-red (PerBang);40826dViridian;009698Viridian green;9f1d35Vivid burgundy;00ccffVivid sky blue;ffa089Vivid tangerine;9f00ffVivid violet;ceff00Volt;004242Warm black;189bccWeezy Blue;a2add0Wild blue yonder;d470a2Wild orchid;ff43a4Wild Strawberry;fd5800Willpower orange;a75502Windsor tan;b11226Wine Red;ff007cWinter Sky;56887dWintergreen Dream;c9a0dcWisteria;738678Xanadu;44500cXander;eeed09Xanthic;f1b42fXanthous;0e7a0dXbox green;fd4900Xiaomi orange;413639Xumo;00356bYale Blue;fce883Yellow (Crayola);efcc00Yellow (Munsell);fedf00Yellow (Pantone);fefe33Yellow (RYB);c5e384Yellow-green (Crayola);30b21aYellow-green (Color Wheel);ffae42Yellow Orange;ff9505Yellow Orange (Color Wheel);fff000Yellow Rose;2e5090YInMn Blue;0014a8Zaffer (Zaffre);91e0b7Zeal;655b55Zinc gray;fdf8ffZinc white;2c1608Zinnwaldite brown;6c0277Zinzolin;807473Zircon gray;39a78eZomp;20483fZydeco".split(';').map(x=>[x.slice(6),x.slice(0,6)]);
+const NAMES=NAMEDATA.map(([n,h])=>[n,oklab('#'+h)]),NAMEV=new Float64Array(NAMES.flatMap(x=>x[1]));
+const nameCache=new Map();
+function colorName(c){if(nameCache.has(c))return nameCache.get(c);const o=oklab(c);let best='',bd=9;
+  for(let i=0,k=0;i<NAMES.length;i++,k+=3){const x=o[0]-NAMEV[k],y=o[1]-NAMEV[k+1],z=o[2]-NAMEV[k+2];if(x*x+y*y+z*z>=bd*bd)continue;const d=Math.hypot(x,y,z);if(d<bd){bd=d;best=NAMES[i][0]}}
+  const r=(bd>.06?'≈ ':'')+best;nameCache.set(c,r);return r}
+/* ---------- palette files: import and export ---------- */
+function parsePalette(text,fname){
+  const base=fname.replace(/\.[^.]+$/,''),lines=text.split(/\r?\n/).map(l=>l.trim()),first=lines.find(l=>l)||'';
+  const fmt=/^GIMP Palette/i.test(first)?'gpl':(/^;/.test(first)||lines.some(l=>/^[0-9a-f]{8}$/i.test(l)))?'pdn':'hex';
+  let name=base,cur=null;const groups=[],grp=n=>{cur={id:uid(),name:n,colors:[]};groups.push(cur)},push=h=>{if(!cur)grp('Main');if(!cur.colors.includes(h))cur.colors.push(h)};
+  for(const l of lines){if(!l)continue;let m;
+    if((m=l.match(/^[#;]\s*Palette Name:\s*(.+)$/i))){name=m[1].trim();continue}
+    if(fmt==='gpl'&&(m=l.match(/^Name:\s*(.+)$/i))){name=m[1].trim();continue}
+    if((m=l.match(/^[#;]\s*Sub-palette:\s*(.+)$/i))){grp(m[1].trim());continue}
+    if(/^[#;]/.test(l)&&!(fmt==='hex'&&/^#[0-9a-f]{6}$/i.test(l)))continue;
+    if(fmt==='gpl'){if(/^(GIMP Palette|Columns:)/i.test(l))continue;const n=l.match(/^(\d+)\s+(\d+)\s+(\d+)/);if(n)push('#'+[n[1],n[2],n[3]].map(v=>Math.min(255,+v).toString(16).padStart(2,'0')).join(''));continue}
+    const h=l.match(/^#?(?:[0-9a-f]{2})?([0-9a-f]{6})$/i);if(h)push('#'+h[1].toLowerCase())}
+  const gs=groups.filter(g=>g.colors.length);return gs.length?{id:uid(),name,updated:Date.now(),groups:gs}:null}
+const slug=s=>s.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'palette';
+const rgbOf=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16));
+const FMT={
+  gpl:(n,gs)=>{const L=['GIMP Palette','#Palette Name: '+n,'#Colors: '+gs.reduce((s,g)=>s+g.colors.length,0)];gs.forEach(g=>{if(gs.length>1)L.push('#Sub-palette: '+g.name);g.colors.forEach(c=>L.push(rgbOf(c).join('\t')+'\t'+c.slice(1)))});return L.join('\r\n')+'\r\n'},
+  txt:(n,gs)=>{const L=[';paint.net Palette File',';Palette Name: '+n,';Colors: '+gs.reduce((s,g)=>s+g.colors.length,0)];gs.forEach(g=>{if(gs.length>1)L.push(';Sub-palette: '+g.name);g.colors.forEach(c=>L.push('FF'+c.slice(1)))});return L.join('\r\n')+'\r\n'},
+  hex:(n,gs)=>[...new Set(gs.flatMap(g=>g.colors))].map(c=>c.slice(1)).join('\r\n')+'\r\n'};
+function exportFiles(p){const x=ui.exp,fmts=x.fmt==='all'?['gpl','txt','hex']:[x.fmt],full=p.groups.filter(g=>g.colors.length);let sets;
+  if(x.scope==='each'&&full.length>1)sets=full.map(g=>({base:slug(p.name)+'-'+slug(g.name),name:p.name+' - '+g.name,groups:[g]}));
+  else if(x.scope==='one'){const g=full.find(g=>g.id===x.group)||full[0];sets=g?[{base:slug(p.name)+'-'+slug(g.name),name:p.name+' - '+g.name,groups:[g]}]:[]}
+  else sets=[{base:slug(p.name),name:p.name,groups:full}];
+  const out=[],used=new Set();
+  sets.forEach(s=>fmts.forEach(f=>{let n=s.base+'.'+f,i=2;while(used.has(n))n=s.base+'-'+(i++)+'.'+f;used.add(n);out.push({name:n,fmt:f,count:s.groups.reduce((a,g)=>a+g.colors.length,0),text:FMT[f](s.name,s.groups)})}));
+  return out}
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function makeZip(files){const enc=new TextEncoder(),parts=[],central=[];let off=0;
+  files.forEach(f=>{const nm=enc.encode(f.name),data=enc.encode(f.text),crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30));[[0,0x04034b50,4],[4,20,2],[6,0x0800,2],[8,0,2],[10,0,2],[12,0x21,2],[14,crc,4],[18,data.length,4],[22,data.length,4],[26,nm.length,2],[28,0,2]].forEach(([o,v,s])=>s===4?h.setUint32(o,v,true):h.setUint16(o,v,true));
+    parts.push(new Uint8Array(h.buffer),nm,data);
+    const c=new DataView(new ArrayBuffer(46));[[0,0x02014b50,4],[4,20,2],[6,20,2],[8,0x0800,2],[10,0,2],[12,0,2],[14,0x21,2],[16,crc,4],[20,data.length,4],[24,data.length,4],[28,nm.length,2],[30,0,2],[32,0,2],[34,0,2],[36,0,2],[38,0,4],[42,off,4]].forEach(([o,v,s])=>s===4?c.setUint32(o,v,true):c.setUint16(o,v,true));
+    central.push(new Uint8Array(c.buffer),nm);off+=30+nm.length+data.length});
+  const cd=central.reduce((s,a)=>s+a.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cd,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...central,new Uint8Array(e.buffer)])}
+function exportHTML(p){const x=ui.exp,files=exportFiles(p),full=p.groups.filter(g=>g.colors.length);
+  if(!files.length)return '<section class="exp"><p class="empty">Add some colours before exporting.</p></section>';
+  const zip=!(files.length===1&&files[0].fmt==='txt'),big=files.some(f=>f.fmt==='txt'&&f.count>96);
+  return `<section class="exp"><div class="row" style="justify-content:space-between"><h3>Export</h3><button class="ghost" id="expClose">Close</button></div>
+  <div class="cols">${steps('exp.fmt','Format',[['gpl','GIMP .gpl'],['txt','Paint.NET .txt'],['hex','HEX .hex'],['all','All three']],x.fmt)}
+  ${steps('exp.scope','What to export',[['whole','Whole palette'],['each','Each sub-palette'],['one','One sub-palette']],x.scope,{dis:full.length>1?[]:['each']})}</div>
+  ${x.scope==='one'?`<label class="ctl" style="max-width:320px"><span class="label">Sub-palette</span><span></span><select id="expGroup" style="grid-column:1/-1">${full.map(g=>`<option value="${g.id}" ${g.id===x.group?'selected':''}>${esc(g.name)}</option>`).join('')}</select></label>`:''}
+  <p class="note">${files.length} file${files.length>1?'s':''}: ${files.map(f=>esc(f.name)).join(', ')}.
+  ${zip?' Saved as one .zip: this page can only hand over .txt files directly, so GIMP and HEX files travel inside a zip.':''}
+  ${x.scope==='whole'&&full.length>1&&x.fmt!=='hex'?' Sub-palettes are kept as “Sub-palette:” comment lines. Other apps ignore them; Palette Shelf reads them back. HEX files hold colours only.':''}
+  ${big?' Paint.NET only shows the first 96 colours of a palette.':''}</p>
+  <div class="row"><button class="primary" id="expSave">Save ${zip?'.zip':'.txt'}</button><button id="expCopy">Copy text</button></div>
+  <textarea readonly id="expText" aria-label="Export preview">${esc(files.map(f=>(files.length>1?'---- '+f.name+' ----\n':'')+f.text).join('\n'))}</textarea></section>`}
+/* ---------- accessibility: colour-vision and projector checks ---------- */
+// Projector / smart board model: raised black level, lost contrast and about 30% less saturation (applied in linear light)
+const projSim=memo(c=>{const v=linRgb(c),Y=.2126*v[0]+.7152*v[1]+.0722*v[2];return toHex(v.map(x=>.06+.82*(Y+(x-Y)*.7)))});
+const ACC={n:{name:'Normal',full:'Normal vision',f:c=>c},p:{name:'Red-blind',full:'Red-blind (protanopia)',f:c=>sim(c,CB.p)},d:{name:'Green-blind',full:'Green-blind (deuteranopia)',f:c=>sim(c,CB.d)},t:{name:'Blue-blind',full:'Blue-blind (tritanopia)',f:c=>sim(c,CB.t)},proj:{name:'Projector',full:'Projector or smart board',f:projSim}};
+const ACC_THR=.065,accThr=k=>k==='proj'?.055:ACC_THR,accCache=new Map();
+// simulated colour in OKLab, cached because the repair loop asks for the same colours many times
+const accLab=(k,c)=>{const key=k+c;let v=accCache.get(key);if(!v){v=oklab(ACC[k].f(c));if(accCache.size>20000)accCache.clear();accCache.set(key,v)}return v};
+// Pairs that look different with normal vision but merge under a condition
+// Calls f(a,b,k,d) for every merging pair, in a fixed order. A cheap squared-distance test skips pairs that are clearly far apart.
+function accScan(cs,keys,f){cs=[...new Set(cs)];const L=cs.map(c=>accLab('n',c)),S=keys.map(k=>cs.map(c=>accLab(k,c))),T=keys.map(accThr),T2=T.map(t=>t*t*1.001),N2=ACC_THR*ACC_THR*.999,N1=ACC_THR*ACC_THR*1.001;
+  const sq=(a,b)=>{const x=a[0]-b[0],y=a[1]-b[1],z=a[2]-b[2];return x*x+y*y+z*z},d3=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+  for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){{const s0=sq(L[i],L[j]);if(s0<N2||s0<N1&&d3(L[i],L[j])<ACC_THR)continue}
+    for(let q=0;q<keys.length;q++){const A=S[q][i],B=S[q][j];if(sq(A,B)>T2[q])continue;const d=d3(A,B);if(d<T[q])f(cs[i],cs[j],keys[q],d/T[q])}}}
+function accIssues(cs,keys){const out=[];accScan(cs,keys,(a,b,k,d)=>out.push({a,b,k,d}));return out.sort((x,y)=>x.d-y.d)}
+// The worst merging pair that is not marked stuck (the same one accIssues would list first)
+function accWorst(cs,keys,stuck){let w=null;accScan(cs,keys,(a,b,k,d)=>{if((!w||d<w.d)&&!stuck.has(a+b))w={a,b,k,d}});return w}
+function accRepair(groups,keys,{keep=new Set(),lo=.02,hi=.99}={}){
+  const all=()=>groups.flatMap(g=>g.colors),swap=(a,b)=>groups.forEach(g=>g.colors=g.colors.map(c=>c===a?b:c));let stuck=new Set();
+  for(let it=0;it<600;it++){const w=accWorst(all(),keys,stuck);if(!w)break;const{a,b}=w;
+    const oa=oklch(a),ob=oklch(b),up=oa.L>=ob.L?a:b,dn=up===a?b:a,ou=up===a?oa:ob,od=up===a?ob:oa;let moved=false;
+    if(!keep.has(up)&&ou.L<hi){const n=safe(Math.min(hi,ou.L+.025),ou.C,ou.H);if(n!==up&&!all().includes(n)){swap(up,n);moved=true}}
+    if(!keep.has(dn)&&od.L>lo){const n=safe(Math.max(lo,od.L-.025),od.C,od.H);if(n!==dn&&!all().includes(n)){swap(dn,n);moved=true}}
+    if(!moved)stuck.add(a+b)}
+  return accIssues(all(),keys).length}
+function accBoost(groups,lo,hi){groups.forEach(g=>{if(g.neutral)return;g.colors=g.colors.map(c=>{const o=oklch(c);return safe(Math.max(lo,Math.min(hi,o.L)),o.C*1.25,o.H)})})}
+function accessHTML(cs,{compact=false,keys=['p','d','t','proj'],hint=false}={}){cs=[...new Set(cs)];if(cs.length<2)return '';
+  const all=accIssues(cs,keys),by=k=>all.filter(x=>x.k===k),sorted=cs.slice().sort((a,b)=>oklch(a).L-oklch(b).L);
+  const cards=keys.map(k=>{const n=by(k).length;return `<div class="acard"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${ACC[k].full}</b><span class="pill ${n?'bad':'ok'}">${n?n+' pair'+(n>1?'s':'')+' merge':'All distinct'}</span></div>
+    <div class="strip">${sorted.map(c=>`<span style="background:${ACC[k].f(c)}" title="${c} as seen: ${ACC[k].f(c)}"></span>`).join('')}</div></div>`}).join('');
+  const list=all.slice(0,compact?6:16).map(x=>`<div class="simrow"><span><span class="dot" style="background:${x.a}"></span><span class="dot" style="background:${x.b}"></span>${esc(cleanName(x.a))} / ${esc(cleanName(x.b))}</span><span class="note">${x.k==='proj'?'look alike on a projector':'look alike for '+ACC[x.k].name.toLowerCase()+' viewers'}</span><span><span class="dot" style="background:${ACC[x.k].f(x.a)}"></span><span class="dot" style="background:${ACC[x.k].f(x.b)}"></span></span></div>`).join('');
+  const tip=hint&&all.length?`<p class="warnline" style="border-color:var(--line);color:var(--fg)">${cs.length} colours is more than can all stay distinct here. Colour-blind vision${keys.includes('proj')?' and projectors':''} leave room for fewer clearly different colours; about ${keys.includes('proj')?'12':'16–20'} usually works. Try fewer colours, or turn off Build as ramps.</p>`:'';
+  return `${tip}<div class="acards">${cards}</div>${all.length?`<div class="dups">${list}</div>${all.length>(compact?6:16)?`<p class="note">…and ${all.length-(compact?6:16)} more.</p>`:''}`:''}`}
+/* ---------- swatches view ---------- */
+function famOf(c){const o=oklch(c);return o.C<.035?'Neutrals':hueName(o.H)}
+function families(cs){const order=[...RANGES.filter(r=>r[1]!=null).map(r=>r[0]),'Neutrals'],m={};
+  cs.forEach(c=>{const f=famOf(c);(m[f]=m[f]||[]).push(c)});
+  return order.filter(f=>m[f]).map(f=>({name:f,cs:m[f],rep:m[f].reduce((a,b)=>oklch(b).C>oklch(a).C?b:a)}))}
+const swSort=cs=>ui.sw.sort==='hue'?cs.slice().sort((a,b)=>{const x=oklch(a),y=oklch(b);return(x.C<.035)-(y.C<.035)||x.H-y.H||x.L-y.L}):sortColors(cs,ui.sw.sort);
+function swatch(c,{gid=null,tag=''}={}){const o=oklch(c),on=ui.sel.has(c),sel=ui.sw.select;
+  return `<div class="sw${on?' picked':''}"><button class="chip" title="${esc(colorName(c))} · ${c.toUpperCase()}" style="background:${c};--ink:${textOn(c)}" ${sel?`data-pick="${c}" aria-pressed="${on}"`:`data-copy="${c}"`} aria-label="${sel?(on?'Deselect ':'Select '):'Copy '}${c}"></button>
+  <div class="info"><span class="nm" title="Closest named colour${colorName(c).startsWith('≈')?' (approximate)':''}">${esc(colorName(c))}</span><span class="hx">${c.toUpperCase()}</span><span class="lv" title="Value is perceived lightness, 0 black to 100 white. Chroma is saturation.">Value ${Math.round(o.L*100)}</span><span class="lv">Chroma ${Math.round(o.C*100)}</span></div>${tag?`<div class="tag" title="${esc(tag)}">${esc(tag)}</div>`:''}
+  ${gid&&!sel?`<button class="x" data-rm="${gid}|${c}" aria-label="Remove ${c}" style="color:${textOn(c)};background:transparent;border-color:transparent">✕</button>`:''}</div>`}
+function swatchesHTML(p){const v=ui.sw,uniq=[...new Set(all(p))],where=c=>p.groups.filter(g=>g.colors.includes(c)).map(g=>g.name).join(', ');
+  const fams=families(uniq),grid=list=>`<div class="grid ${v.size}">${list}</div>`;
+  const selAll=cs=>v.select?`<button class="ghost" data-selall="${cs.join(',')}">${cs.every(c=>ui.sel.has(c))?'Deselect all':'Select all'}</button>`:'';
+  const bar=`<div class="swbar">
+    ${steps('sw.view','Group by',[['groups','Sub-palettes'],['family','Colour family'],['all','All colours']],v.view)}
+    ${steps('sw.sort','Sort',[['manual','Order added'],['light','Lightness'],['hue','Hue'],['sat','Saturation']],v.sort)}
+    ${steps('sw.size','Swatch size',[['s','Small'],['m','Medium'],['l','Large']],v.size)}
+    <label class="row chk"><input type="checkbox" id="swSelect" ${v.select?'checked':''}> Select colours to build sub-palettes</label></div>`;
+  const breakdown=uniq.length?`<div class="bd"><div class="strip big">${swSort(uniq).map(c=>`<span style="background:${c}" title="${esc(colorName(c))} · ${c}"></span>`).join('')}</div>
+    <div class="fambar">${fams.map(f=>`<span style="flex:${f.cs.length};background:${f.rep}" title="${f.name}: ${f.cs.length}"></span>`).join('')}</div>
+    <div class="famlegend">${fams.map(f=>`<span><i style="background:${f.rep}"></i>${f.name} ${f.cs.length}</span>`).join('')}</div></div>`:'';
+  const opts=p.groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('');
+  const selbar=v.select?`<div class="selbar"><b>${ui.sel.size} selected</b>
+    <input id="selName" placeholder="New sub-palette name" style="flex:1;min-width:140px;max-width:240px">
+    <button class="primary" data-selnew="copy" ${ui.sel.size?'':'disabled'}>Copy into new</button><button data-selnew="move" ${ui.sel.size?'':'disabled'}>Move into new</button>
+    <span class="row" style="gap:6px"><select id="selTarget" aria-label="Sub-palette to move into">${opts}</select><button id="selMoveTo" ${ui.sel.size&&p.groups.length?'':'disabled'}>Move to</button></span>
+    <button class="ghost" id="selClear" ${ui.sel.size?'':'disabled'}>Clear</button></div>`:'';
+  let body='';
+  if(v.view==='groups')body=p.groups.map(g=>{const cs=swSort(g.colors);return `<section class="group">
+    <div class="row" style="justify-content:space-between"><div class="row"><h3>${esc(g.name)}</h3><span class="label">${g.colors.length}</span><span class="strip mini">${cs.map(c=>`<span style="background:${c}"></span>`).join('')}</span></div>
+      <div class="row">${selAll(g.colors)}${v.sort!=='manual'&&g.colors.length>1?`<button class="ghost" data-apply="${g.id}" title="Save the sorted order into this sub-palette">Keep this order</button>`:''}<button class="ghost" data-rg="${g.id}">Rename</button><button class="ghost danger" data-dg="${g.id}">Remove</button></div></div>
+    ${cs.length?grid(cs.map(c=>swatch(c,{gid:g.id})).join('')):'<p class="empty">No colours yet.</p>'}
+    <div class="row"><input type="color" id="pick-${g.id}" value="#4b3fd1" aria-label="Pick colour"><input id="hex-${g.id}" placeholder="#aabbcc, #123 …" style="flex:1;max-width:320px"><button data-add="${g.id}">Add colours</button></div></section>`}).join('')
+    +`<div class="row group"><input id="newGroup" placeholder="New sub-palette name" style="flex:1;max-width:320px"><button id="addGroup">Add sub-palette</button></div>`;
+  else if(v.view==='family')body=fams.map(f=>{const cs=v.sort==='manual'?f.cs:swSort(f.cs);return `<section class="group">
+    <div class="row" style="justify-content:space-between"><div class="row"><span class="dot" style="background:${f.rep}"></span><h3>${f.name}</h3><span class="label">${f.cs.length}</span></div>
+      <div class="row">${selAll(f.cs)}<button class="ghost" data-famnew="${f.name}">Make sub-palette</button></div></div>
+    ${grid(cs.map(c=>swatch(c,{tag:where(c)})).join(''))}</section>`}).join('')+'<p class="note">Families are worked out from each colour’s hue; colours with very little saturation count as neutrals.</p>';
+  else body=`<section class="group">${grid(swSort(uniq).map(c=>swatch(c,{tag:where(c)})).join(''))}</section>`;
+  return bar+breakdown+selbar+(uniq.length||v.view==='groups'?body:'<p class="empty">No colours yet. Switch to Sub-palettes to add some.</p>');
+}
+/* ---------- Satisfactory: Universal Swatch Slots builder ---------- */
+const USS_SAFE=226,USS_MAX=226;
+function ussNew(name){return{id:uid(),name:name||'My swatches',file:'MySwatches',active:true,addP:true,addS:true,remP:false,remS:false,groups:[],
+  gen:{source:'gen',pal:null,count:'28',pairing:'tonal',dir:'auto',offset:40,contrast:'off',snap:'on',naming:'colours',grouping:'groups',balance:'on'}}}
+function ussCur(){state.uss=state.uss||[];let b=state.uss.find(x=>x.id===state.ussOpen)||state.uss[0];if(b)state.ussOpen=b.id;return b}
+function ussFind(b,sid){for(let gi=0;gi<b.groups.length;gi++){const g=b.groups[gi],si=g.swatches.findIndex(s=>s.id===sid);if(si>=0)return{g,gi,s:g.swatches[si],si}}return null}
+const ussAll=b=>b.groups.flatMap(g=>g.swatches);
+const cleanName=c=>colorName(c).replace(/^≈ /,'');
+function ussName(s,gname,i,mode){return mode==='primary'?cleanName(s.p):mode==='group'?gname+' '+String(i+1).padStart(2,'0'):(s.p===s.s?cleanName(s.p):cleanName(s.p)+' & '+cleanName(s.s))}
+const USS_BAND={full:[0,1],mid:[.34,.8],dark:[.2,.62],light:[.5,.92]};
+function ussPool(b){const g=b.gen,N=+g.count;
+  if(g.source==='pal'){const p=state.palettes.find(x=>x.id===g.pal);if(!p)return[];return p.groups.filter(x=>x.colors.length).map(x=>({name:x.name,colors:[...new Set(x.colors)]}))}
+  const band=USS_BAND[g.band||'mid'],o={...ui.rand,count:Math.min(400,Math.max(48,N*3))};let r=genRandom(o);
+  // keep primaries inside the chosen value band; a family that has nothing there keeps its closest colours
+  return r.map(x=>{const inb=x.colors.filter(c=>{const L=oklch(c).L;return L>=band[0]&&L<=band[1]});const mid=(band[0]+band[1])/2;
+    return{name:x.name,colors:inb.length?inb:x.colors.slice().sort((a,c)=>Math.abs(oklch(a).L-mid)-Math.abs(oklch(c).L-mid)).slice(0,Math.max(1,x.colors.length>>1))}})}
+// Pick exactly N primaries: spread evenly through each group, or add in-between shades where the source is too small
+function ussFit(src,N){const byL=(a,b)=>oklch(a).L-oklch(b).L;
+  const groups=src.map(g=>({name:g.name,colors:g.colors.slice().sort(byL)})).filter(g=>g.colors.length);
+  let tot=groups.reduce((s,g)=>s+g.colors.length,0);if(!tot)return[];
+  if(tot>N){const alloc=groups.map(g=>g.colors.length*N/tot),base=alloc.map(Math.floor);let left=N-base.reduce((a,c)=>a+c,0);
+    alloc.map((a,i)=>[a-base[i],i]).sort((x,y)=>y[0]-x[0]).forEach(([,i])=>{if(left>0){base[i]++;left--}});
+    groups.forEach((g,i)=>{const k=Math.min(base[i],g.colors.length),n=g.colors.length;g.colors=k<=0?[]:[...Array(k)].map((_,j)=>g.colors[Math.min(n-1,Math.floor((j+.5)*n/k))])});
+    return groups.filter(g=>g.colors.length)}
+  let guard=0;
+  while(tot<N&&guard++<2000){let best=null,bg=-1;
+    groups.forEach(g=>{if(g.colors.length===1){if(.5>bg){bg=.5;best=[g,-1]}}else for(let i=0;i<g.colors.length-1;i++){const d=dist(g.colors[i],g.colors[i+1]);if(d>bg){bg=d;best=[g,i]}}});
+    const[g,i]=best;let c;
+    if(i<0){const o=oklch(g.colors[0]);c=safe(o.L>.5?o.L-.18:o.L+.18,o.C,o.H)}else c=mixLab(oklab(g.colors[i]),oklab(g.colors[i+1]),.5);
+    if(g.colors.includes(c)){const o=oklch(c);c=safe(Math.min(.98,o.L+.01),o.C,o.H+2)}
+    g.colors.push(c);g.colors.sort(byL);tot++}
+  return groups}
+function pushContrast(p,C,H,dir,t,lock){const o=oklch(p);
+  for(const d of(lock?[dir]:[dir,-dir])){const end=d<0?0:1;if(ratio(safe(end,C,H),p)<t)continue;let lo=o.L,hi=end;
+    for(let k=0;k<22;k++){const m=(lo+hi)/2;ratio(safe(m,C,H),p)>=t?hi=m:lo=m}return safe(hi,C,H)}
+  if(lock)return safe(dir<0?0:1,C,H);
+  return ratio(safe(0,C,H),p)>ratio(safe(1,C,H),p)?safe(0,C,H):safe(1,C,H)}
+// Where a hue heads as it darkens: warm hues (reds, oranges, yellows) toward a deep rust, cool hues toward blue
+const shadeTo=h=>{h=((h%360)+360)%360;return h<=110||h>=330?32:265};
+function ussSecondary(p,pool,G,idx){
+  if(G.pairing==='same')return p;
+  const o=oklch(p),off=G.offset/100,t=+G.contrast||0,lock=!!G.lock;let dir=G.dir==='dark'?-1:G.dir==='light'?1:(o.L>.55?-1:1);
+  let L=o.L+dir*off;if(L<.03||L>.98){if(lock)L=Math.max(.02,Math.min(.99,L));else{dir=-dir;L=o.L+dir*off}}
+  let C=o.C,H=o.H;
+  if(G.pairing==='tonal'){C=o.C*.9;H=towards(o.H,dir<0?shadeTo(o.H):75,10)}
+  else if(G.pairing==='complement')H=o.H+180;
+  else if(G.pairing==='analogous')H=o.H+(idx%2?35:-35);
+  else if(G.pairing==='neutral'){const nt=G.ntint||'subtle';C=nt==='grey'?0:nt==='tinted'?.028:nt==='style'?Math.min(o.C,.018):.012;
+    if((G.nval||'fixed')==='fixed'){const d=(G.ndark??22)/100,l=(G.nlight??86)/100;L=dir<0?Math.min(d,o.L-.05):Math.max(l,o.L+.05);L=Math.max(.01,Math.min(.99,L))}}
+  const target=safe(L,C,H);
+  if(G.snap==='on'&&pool.length>1&&!(G.pairing==='neutral'&&(G.ntint||'subtle')!=='style')){let best=null,bd=9;
+    pool.forEach(c=>{if(c===p||(t&&ratio(c,p)<t)||(lock&&(oklch(c).L-o.L)*dir<=0)||(G.pairing==='neutral'&&oklch(c).C>.035))return;const d=dist(c,target);if(d<bd){bd=d;best=c}});if(best&&bd<.09)return best}
+  return t&&ratio(target,p)<t?pushContrast(p,C,H,dir,t,lock):target}
+function ussGenerate(b,append){
+  const G=b.gen,N=Math.max(1,Math.min(USS_MAX,+G.count||1)),src=ussPool(b),pool=[...new Set(src.flatMap(x=>x.colors))],fit=ussFit(src,N);
+  let i=0;const bal=G.pairing==='neutral'&&G.balance==='on',dirMap=new Map();
+  if(bal){let odd=0;fit.forEach((gr,gi)=>{const n=gr.colors.length,rank=gr.colors.map((c,j)=>[oklch(c).L,j]).sort((x,y)=>x[0]-y[0]);rank.forEach(([,j],r)=>dirMap.set(gi+':'+j,r<Math.floor(n/2)?'light':r>=Math.ceil(n/2)?'dark':(odd++%2?'dark':'light')))})}
+  let out=fit.map((gr,gi)=>{const dirs=gr.colors.map((c,j)=>{const d=dirMap.get(gi+':'+j);return d&&d!=='auto'?d:null});return{id:uid(),name:gr.name.replace(/ ramp( \d+)?$/,'$1'),swatches:gr.colors.map((c,j)=>{const s={id:uid(),p:c,s:ussSecondary(c,pool,dirs[j]?{...G,dir:dirs[j],lock:true}:G,i++),m:'Default'};s.name=ussName(s,gr.name.replace(/ ramp( \d+)?$/,'$1'),j,G.naming);return s})}});
+  if(G.grouping==='one')out=[{id:uid(),name:b.name,swatches:out.flatMap(g=>g.swatches)}];
+  b.groups=append?b.groups.concat(out):out;ui.ussSel=null;
+  return out.reduce((s,g)=>s+g.swatches.length,0)}
+function ussJSON(b){
+  const file=(b.file||'').replace(/[^A-Za-z0-9_]/g,'')||'MySwatches',hx=c=>c.toUpperCase()+'FF';
+  return JSON.stringify([{Name:file,PaletteName:b.name,IsActive:!!b.active,AddPrimaryColorsToPreset:!!b.addP,AddSecondaryColorsToPreset:!!b.addS,RemovePrimaryColorsToPreset:!!b.remP,RemoveSecondaryColorsToPreset:!!b.remS,
+    Groups:b.groups.filter(g=>g.swatches.length).map((g,gi)=>({Name:g.name,Priority:gi,Swatches:g.swatches.map((s,si)=>({Name:s.name,Priority:si,Material:s.m||'Default',PrimaryColor:hx(s.p),SecondaryColor:hx(s.s)}))}))}],null,'\t').replace(/\n/g,'\r\n')+'\r\n'}
+function locName(v){const m=String(v).match(/LOCTABLE\(.*?,\s*"([^"]+)"\s*\)/);if(!m)return String(v);
+  let k=m[1].replace(/^DefPal_/,'').replace(/_Swatch_Name$/,'').replace(/_Group_Name$/,'').replace(/_Name$/,'');
+  if(k.includes('_Group_'))k=k.split('_Group_').pop();
+  return k.replace(/_/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([A-Z])([A-Z][a-z])/g,'$1 $2').trim()}
+function parseUSS(text){let d;try{d=JSON.parse(text)}catch(e){return null}
+  if(!Array.isArray(d))d=[d];
+  const out=d.filter(x=>x&&Array.isArray(x.Groups)).map(x=>{const b=ussNew();
+    b.file=String(x.Name||'Imported').replace(/[^A-Za-z0-9_]/g,'');
+    b.name=/^LOCTABLE/.test(x.PaletteName||'')?String(x.Name||'Imported').replace(/([a-z])([A-Z])/g,'$1 $2'):String(x.PaletteName||x.Name||'Imported');
+    b.active=!!x.IsActive;b.addP=!!x.AddPrimaryColorsToPreset;b.addS=!!x.AddSecondaryColorsToPreset;b.remP=!!x.RemovePrimaryColorsToPreset;b.remS=!!x.RemoveSecondaryColorsToPreset;
+    const col=c=>{const h=norm(String(c||'').slice(0,7));return h||'#808080'};
+    b.groups=x.Groups.slice().sort((a,c)=>(a.Priority||0)-(c.Priority||0)).map(g=>({id:uid(),name:locName(g.Name),
+      swatches:(g.Swatches||[]).slice().sort((a,c)=>(a.Priority||0)-(c.Priority||0)).map(s=>({id:uid(),name:locName(s.Name),m:s.Material||'Default',p:col(s.PrimaryColor),s:col(s.SecondaryColor)}))}));
+    return b});
+  return out.length?out:null}
+async function saveText(filename,data){let d=null;try{d=window.claude&&await window.claude.use('downloads')}catch(e){}
+  if(d){try{await d.save({filename,data});toast('Saved')}catch(err){toast(err&&err.code==='declined'?'Save cancelled':'Could not save: '+((err&&err.message)||'not available'))}return}
+  if(window.parent===window){const blob=data instanceof Blob?data:new Blob([data],{type:'application/octet-stream'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Saved');return}
+  toast('Saving files is not available here. Use Copy instead.')}
+
+/* ----- views ----- */
+const pairBg=(p,s)=>`--p:${p};--s:${s}`;
+function ussHTML(){
+  let b=ussCur();if(!b){b=ussNew();state.uss.push(b);state.ussOpen=b.id;save()}
+  ui.ussg=b.gen;const n=ussAll(b).length,tab=ui.ussTab||(n?'arrange':'gen');ui.ussTab=tab;
+  const tabs=[['gen','Generate'],['arrange','Arrange'+(n?' ('+n+')':'')],['analysis','Analysis'],['export','Export']];
+  return `<div class="rhead"><div style="min-width:0;flex:1"><input id="ussName" class="titlein" value="${esc(b.name)}" aria-label="Swatch set name" title="Click to rename">
+    <p class="note">Swatch sets for the Universal Swatch Slots mod in Satisfactory. Each swatch is a pair: a primary and a secondary colour.</p></div>
+    <div class="row">${state.uss.length>1?`<select id="ussPick" aria-label="Open swatch set">${state.uss.map(x=>`<option value="${x.id}" ${x.id===b.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`:''}
+    <button id="ussNewSet">New set</button>${ui.ussDelSet===b.id?`<button class="danger" id="ussDelYes">Delete “${esc(b.name)}”</button><button id="ussDelNo">Keep</button>`:`<button class="ghost danger" id="ussDelSet">Delete set</button>`}<button class="ghost" id="ussClose">Close</button></div></div>
+  <div class="row tabs" role="tablist">${tabs.map(([k,t])=>`<button class="tab ${tab===k?'on':''}" data-utab="${k}" role="tab">${t}</button>`).join('')}</div>
+  ${tab==='gen'?ussGenHTML(b):tab==='arrange'?ussArrangeHTML(b):tab==='analysis'?ussAnalysisHTML(b):ussExportHTML(b)}`}
+function ussCountWarn(n){return n>USS_SAFE?`<p class="warnline">${n} swatches is over the ${USS_SAFE} slots the mod's page lists as available (the game keeps slots 1–28 and 255). The extra swatches may not load.</p>`:''}
+function ussGenHTML(b){const G=b.gen,n=ussAll(b).length,pals=state.palettes;
+  let genSettings='';
+  if(G.source==='gen')genSettings=`<h3 style="margin:4px 0 -4px">Generator settings</h3><div id="randPanel" class="ussgen">${randSettingsHTML()}</div>`
+  if(G.source==='pal'&&!pals.some(p=>p.id===G.pal))G.pal=(cur()||pals[0]||{}).id||null;
+  return `<fieldset class="pnl wide">
+    <div class="urows">
+      <div class="urow"><div class="urowh"><span class="label sect">Source</span><p class="note">Where the primary colours come from.</p></div><div class="urowc">
+        ${tog('ussSrc','Use a saved palette’s exact colours',G.source==='pal')}
+        ${G.source==='pal'?`<label class="ctl"><span class="label">Palette</span><span></span><select id="ussPal" style="grid-column:1/-1">${pals.map(p=>`<option value="${p.id}" ${p.id===G.pal?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
+          <p class="note">Uses the palette's own colours. Sub-palettes become groups. If you ask for more swatches than it has colours, in-between shades are added.</p>`
+          :`<p class="note">Off: uses the generator settings below, the same ones as the Random palette screen. Pick one of your palettes under Style to generate in its style.</p>`}</div></div>
+      <div class="urow"><div class="urowh"><span class="label sect">Swatches</span><p class="note">How many slots to fill, and how they are grouped and named.</p></div><div class="urowc">
+        <label class="ctl"><span class="label">Number of swatches</span><input type="number" id="ussCountN" min="1" max="${USS_MAX}" value="${G.count}" class="numin"><input type="range" id="ussCount" min="1" max="${USS_MAX}" value="${G.count}"></label>
+        <div id="ussCountWarn">${ussCountWarn(+G.count)}</div>
+        ${tog('ussOne','Put every swatch in one group',G.grouping==='one',{note:G.grouping==='one'?'All swatches go into a single group named after the set.':'Each source group (or colour family) becomes its own group.'})}
+        ${G.source==='gen'?steps('ussg.band','Primary values',[['mid','Mid tones'],['dark','Darker'],['light','Lighter'],['full','Full range']],G.band||'mid',{note:{mid:'Primaries come from the middle of each ramp, where colours are strongest.',dark:'Primaries lean dark: deep, rich colours.',light:'Primaries lean light: soft, bright colours.',full:'Primaries can be anywhere from near-black to near-white, which can look muddy or washed out.'}[G.band||'mid']}):''}
+        ${steps('ussg.naming','Names',[['colours','Both colours'],['primary','Primary colour'],['group','Group + number']],G.naming)}</div></div>
+      <div class="urow"><div class="urowh"><span class="label sect">Pairing</span><p class="note">How each primary gets its secondary colour.</p></div><div class="urowc">
+        ${steps('ussg.pairing','Secondary is',[['tonal','Same hue'],['complement','Opposite hue'],['analogous','Next hue'],['neutral','Neutral'],['same','Same colour']],G.pairing)}
+        ${G.pairing==='neutral'?tog('ussBal','Even split: half darker, half lighter',G.balance==='on',{note:G.balance==='on'?'Within every group, half the pairs get a darker neutral and half a lighter one. A group with an odd count has one swatch over; those alternate between groups so the whole set stays even. The darker half of each group gets the lighter neutrals, so pairs keep their contrast. Each group header shows its split.':'Each secondary goes darker or lighter by the setting below.'}):''}
+        ${steps('ussg.dir','Secondary is',[['dark','Darker'],['auto','Auto'],['light','Lighter']],G.dir,{off:G.pairing==='same'||(G.pairing==='neutral'&&G.balance==='on')})}
+        ${G.pairing==='neutral'?steps('ussg.ntint','Neutral tint',[['grey','Pure grey'],['subtle','Subtle'],['tinted','Tinted'],['style','From the style']],G.ntint||'subtle',{note:(G.ntint||'subtle')==='style'?'Uses the style’s own neutrals, such as the beige greys of ’90s computing. These can look muddy beside cool colours.':(G.ntint||'subtle')==='grey'?'Neutral grey with no tint.':'Each neutral takes a hint of its primary’s hue, so blues get cool greys and reds get warm greys.'}):''}
+        ${G.pairing==='neutral'?tog('ussFixed','Set neutral values directly',(G.nval||'fixed')==='fixed',{note:(G.nval||'fixed')==='fixed'?'Darker neutrals use the dark value and lighter neutrals the light value, as long as that keeps them on the right side of their primary.':'Neutrals sit a set value gap away from each primary.'}):''}
+        ${G.pairing==='neutral'&&(G.nval||'fixed')==='fixed'?`<label class="ctl"><span class="label">Dark neutral value</span><output id="ussNDarko">${G.ndark??22}</output><input type="range" id="ussNDark" min="2" max="55" value="${G.ndark??22}" style="accent-color:${safe((G.ndark??22)/100,0,0)}"></label>
+        <label class="ctl"><span class="label">Light neutral value</span><output id="ussNLighto">${G.nlight??86}</output><input type="range" id="ussNLight" min="45" max="98" value="${G.nlight??86}" style="accent-color:${safe((G.nlight??86)/100,0,0)}"></label>`:''}
+        ${G.pairing==='neutral'&&(G.nval||'fixed')==='fixed'?'':`<label class="ctl${G.pairing==='same'?' off':''}"><span class="label">Value gap</span><output id="ussOffo">${G.offset}</output><input type="range" id="ussOff" min="0" max="70" value="${G.offset}" ${G.pairing==='same'?'disabled':''}></label>`}
+        ${steps('ussg.contrast','Minimum contrast in each pair',[['off','Off'],['3','3:1'],['4.5','4.5:1'],['7','7:1']],G.contrast,{off:G.pairing==='same',note:G.contrast==='7'?'Mid-value primaries cannot reach 7:1 against any colour. Those pairs get the most contrast possible, and Analysis flags them.':''})}
+        ${tog('ussSnap','Keep secondaries inside the source',G.snap==='on',{dis:G.pairing==='same'||(G.pairing==='neutral'&&(G.ntint||'subtle')!=='style'),note:G.pairing==='neutral'&&(G.ntint||'subtle')!=='style'?'Only used when Neutral tint is set to From the style; the other tints calculate each neutral.':G.snap==='on'?'Each secondary is the closest source colour to the calculated one, so the set stays inside the palette. If nothing in the source is close, the calculated colour is used.':'Secondaries are calculated exactly, so they can be colours the source does not have.'})}</div>
+    </div></div></div></fieldset>
+  ${genSettings}
+  <div class="row"><button class="primary" id="ussGo">${n?'Generate (replaces '+n+' swatches)':'Generate'}</button><button id="ussShuffle">Shuffle and generate</button>${n?'<button id="ussAppend">Add to the existing swatches</button>':''}</div>`}
+function ussArrangeHTML(b){const all=ussAll(b);let k=0;const sel=ui.ussSel&&ussFind(b,ui.ussSel);
+  if(!all.length&&!b.groups.length)return `<p class="empty">No swatches yet. Use Generate, or add a group and build them by hand.</p><div class="row"><button id="ussAddGroup">Add group</button></div>`;
+  return `<div class="row" style="justify-content:space-between"><span class="note">${all.length} swatches in ${b.groups.length} group${b.groups.length===1?'':'s'}. Drag swatches to reorder them or move them between groups; drag a group by its ⠿ handle. With a swatch selected, Alt+← / Alt+→ also moves it.</span>
+    <div class="row"><button id="ussAddGroup">Add group</button><button id="ussRenameAll">Rename all (${{colours:'both colours',primary:'primary colour',group:'group + number'}[b.gen.naming]})</button></div></div>
+  ${ussCountWarn(all.length)}
+  ${sel?ussEditor(b,sel):''}
+  ${b.groups.map(g=>`<section class="ugroup" data-ug="${g.id}">
+    <div class="row ughead"><span class="handle" draggable="true" data-ghandle="${g.id}" title="Drag to reorder groups" aria-hidden="true">⠿</span>
+      <input class="gname" data-gname="${g.id}" value="${esc(g.name)}" aria-label="Group name"><span class="label">${g.swatches.length}</span><span class="note" title="Secondaries darker / lighter than their primary">${g.swatches.filter(s=>oklch(s.s).L<oklch(s.p).L).length} darker · ${g.swatches.filter(s=>oklch(s.s).L>oklch(s.p).L).length} lighter</span>
+      <div class="row" style="margin-left:auto"><button class="ghost" data-usort="${g.id}" title="Order this group from dark to light">Sort by value</button><button class="ghost" data-uaddsw="${g.id}">Add swatch</button>
+      ${ui.ussDelG===g.id?`<button class="danger" data-udelgy="${g.id}">Delete group and ${g.swatches.length} swatches</button><button data-udelgn="1">Keep</button>`:`<button class="ghost danger" data-udelg="${g.id}">Delete group</button>`}</div></div>
+    <div class="ugrid" data-ugrid="${g.id}">${g.swatches.map(s=>{k++;return `<div class="utile${ui.ussSel===s.id?' on':''}" draggable="true" tabindex="0" data-usw="${s.id}" title="${esc(s.name)} · ${s.p.toUpperCase()} / ${s.s.toUpperCase()}">
+      <span class="uchip" style="${pairBg(s.p,s.s)}"></span><span class="unum">${k}</span><span class="unm">${esc(s.name)}</span></div>`}).join('')||'<p class="note" style="margin:6px">Empty group. Drop swatches here.</p>'}</div></section>`).join('')}`}
+function ussEditor(b,{s,g}){
+  return `<div class="ued"><span class="uchip big" style="${pairBg(s.p,s.s)}"></span>
+   <div class="uedf">
+    <label class="ctl"><span class="label">Swatch name</span><span></span><input data-sf="name" data-sid="${s.id}" value="${esc(s.name)}" style="grid-column:1/-1"></label>
+    <div class="row">
+      <label class="ctl"><span class="label">Primary</span><span></span><span class="row" style="grid-column:1/-1;flex-wrap:nowrap"><input type="color" data-sf="p" data-sid="${s.id}" value="${s.p}"><input data-sf="ph" data-sid="${s.id}" value="${s.p.toUpperCase()}" class="hexin"></span></label>
+      <button class="ghost" data-uswap="${s.id}" title="Swap primary and secondary">⇄ Swap</button>
+      <label class="ctl"><span class="label">Secondary</span><span></span><span class="row" style="grid-column:1/-1;flex-wrap:nowrap"><input type="color" data-sf="s" data-sid="${s.id}" value="${s.s}"><input data-sf="sh" data-sid="${s.id}" value="${s.s.toUpperCase()}" class="hexin"></span></label>
+      <label class="ctl"><span class="label">Material</span><span></span><input data-sf="m" data-sid="${s.id}" value="${esc(s.m||'Default')}" class="hexin" style="grid-column:1/-1"></label>
+      <label class="ctl"><span class="label">Group</span><span></span><select data-umove="${s.id}" style="grid-column:1/-1">${b.groups.map(x=>`<option value="${x.id}" ${x===g?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
+    </div>
+    <p class="note">${esc(cleanName(s.p))} / ${esc(cleanName(s.s))} · contrast ${ratio(s.p,s.s).toFixed(2)}:1</p>
+    <div class="row"><button class="ghost" data-udup="${s.id}">Duplicate</button><button class="ghost danger" data-udel="${s.id}">Delete swatch</button><button class="ghost" data-udone="1">Done</button></div>
+   </div></div>`}
+const grade=v=>v>=7?'AAA':v>=4.5?'AA':v>=3?'AA lg':'low';
+function ussAnalysisHTML(b){const all=ussAll(b);if(!all.length)return '<p class="empty">Generate or add some swatches to analyse them.</p>';
+  const slot=new Map(all.map((s,i)=>[s.id,i+1]));
+  const rows=all.map(s=>({s,r:ratio(s.p,s.s),dL:Math.abs(oklch(s.p).L-oklch(s.s).L),dH:(()=>{const a=oklch(s.p),c=oklch(s.s);return a.C<.03||c.C<.03?null:Math.abs(hdiff(a.H,c.H))})(),dE:dist(s.p,s.s)}));
+  const sim=[];for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){const a=all[i],c=all[j],d=Math.max(dist(a.p,c.p),dist(a.s,c.s));if(d<.045)sim.push([a,c,d])}
+  sim.sort((x,y)=>x[2]-y[2]);
+  const low=rows.filter(x=>x.r<3).length,flat=rows.filter(x=>x.dE<.04).length;
+  if((ui.ussa||{}).sort==='contrast')rows.sort((x,y)=>x.r-y.r);
+  const mini=(f,s)=>`<span class="uchip mini" style="${pairBg(f(s.p),f(s.s))}"></span>`;
+  return `<div class="stats">
+    <div><b>${all.length}</b><span>swatches</span></div>
+    <div><b>${low}</b><span>pairs under 3:1 contrast</span></div>
+    <div><b>${flat}</b><span>pairs where both colours look alike</span></div>
+    <div><b>${sim.length}</b><span>swatches hard to tell apart from another</span></div>
+    <div><b>${rows.filter(x=>oklch(x.s.s).L<oklch(x.s.p).L).length} / ${rows.filter(x=>oklch(x.s.s).L>oklch(x.s.p).L).length}</b><span>darker / lighter secondaries</span></div></div>
+  <section class="group"><div class="row" style="justify-content:space-between"><h3>Picker preview</h3><button id="ussToPal">Open these colours in palette analysis</button></div>
+    <p class="note">Every swatch in slot order, primary top left and secondary bottom right. The palette analysis button saves the colours as a palette (one sub-palette per group) so the full Analysis tab can check them too.</p>
+    <div class="upick">${all.map((s,i)=>`<span class="uchip" style="${pairBg(s.p,s.s)}" title="${i+1}. ${esc(s.name)}"></span>`).join('')}</div></section>
+  <section class="group"><div class="row" style="justify-content:space-between"><h3>Pairs</h3>${steps('ussa.sort','Order',[['order','Slot order'],['contrast','Lowest contrast first']],(ui.ussa||{}).sort||'order')}</div>
+    <p class="note">Rows are tinted when a pair is under 2:1 or its two colours look alike. Contrast between each swatch's two colours, how far apart they are in value (lightness, 0–100) and hue, and how the pair looks with common colour-vision differences. Pairs that look alike will read as one flat colour in game.</p>
+    <div class="scroll"><table class="utab"><thead><tr><th>#</th><th>Pair</th><th>Name</th><th>Contrast</th><th>Value gap</th><th>Hue gap</th><th title="Protanopia, deuteranopia, tritanopia, greyscale">Colour vision</th></tr></thead><tbody>
+    ${rows.map(({s,r,dL,dH,dE})=>`<tr class="${r<2||dE<.04?'flag':''}"><td>${slot.get(s.id)}</td><td><button class="uchip rowchip" style="${pairBg(s.p,s.s)}" data-ugo="${s.id}" title="Edit this swatch" aria-label="Edit ${esc(s.name)}"></button></td>
+      <td class="tn">${esc(s.name)}<br><span class="lv">${s.p.toUpperCase()} / ${s.s.toUpperCase()}</span></td>
+      <td><b>${r.toFixed(2)}</b> <span class="pill ${r<3?'bad':''}">${grade(r)}</span></td><td>${Math.round(dL*100)}</td><td>${dH==null?'–':Math.round(dH)+'°'}</td>
+      <td class="cbs">${mini(c=>sim_(c,'p'),s)}${mini(c=>sim_(c,'d'),s)}${mini(c=>sim_(c,'t'),s)}${mini(gray,s)}${dE<.04?'<span class="pill bad">alike</span>':''}</td></tr>`).join('')}
+    </tbody></table></div></section>
+  <section class="group"><h3>Swatches that are hard to tell apart</h3>
+    ${sim.length?`<p class="note">Both colours of these swatches are very close, so they will be hard to pick out from each other in the game.</p><div class="dups">${sim.slice(0,30).map(([a,c,d])=>`<div class="simrow"><span><span class="uchip mini" style="${pairBg(a.p,a.s)}"></span>${slot.get(a.id)}. ${esc(a.name)}</span><span><span class="uchip mini" style="${pairBg(c.p,c.s)}"></span>${slot.get(c.id)}. ${esc(c.name)}</span><span class="note">difference ${(d*100).toFixed(1)}</span></div>`).join('')}</div>${sim.length>30?`<p class="note">…and ${sim.length-30} more.</p>`:''}`:'<p class="note">Every swatch is clearly different from the others.</p>'}</section>`}
+const sim_=(c,k)=>sim(c,CB[k]);
+function ussExportHTML(b){const n=ussAll(b).length,json=ussJSON(b),file=(b.file||'').replace(/[^A-Za-z0-9_]/g,'')||'MySwatches';
+  const chk=(id,label,on)=>`<label class="row chk"><input type="checkbox" id="${id}" ${on?'checked':''}> ${label}</label>`;
+  return `<fieldset class="pnl wide"><div class="cols">
+    <div class="col"><span class="label sect">File</span>
+      <label class="ctl"><span class="label">File and palette ID</span><span></span><input id="ussFile" value="${esc(file)}" style="grid-column:1/-1"></label>
+      <p class="note">Saved as <b>${esc(file)}.json</b>. Letters, numbers and underscores only. The mod uses file names to decide priority when more than one palette is active.</p>
+      <p class="note">Put the file in your Satisfactory folder under <code>FactoryGame/Configs/UniversalSwatchSlots/</code>. On a server, copy that folder into the server's Configs folder too; players need the same file.</p></div>
+    <div class="col"><span class="label sect">Options</span>
+      ${chk('ussActive','Active (IsActive)',b.active)}
+      ${chk('ussAddP','Add primary colours to the colour presets',b.addP)}
+      ${chk('ussAddS','Add secondary colours to the colour presets',b.addS)}
+      ${chk('ussRemP','Remove primary colours from the presets (RemovePrimaryColorsToPreset)',b.remP)}
+      ${chk('ussRemS','Remove secondary colours from the presets (RemoveSecondaryColorsToPreset)',b.remS)}
+      <div class="row"><input id="ussMatAll" value="Default" class="hexin" aria-label="Material for every swatch"><button id="ussMatApply">Set material on all swatches</button></div>
+      <p class="note">The mod's default file only uses the material “Default”. Other material names may work, but I could not confirm which ones.</p></div></div></fieldset>
+  ${ussCountWarn(n)}
+  <p class="note">${n} swatches in ${b.groups.filter(g=>g.swatches.length).length} groups. Names are written as plain text rather than the LOCTABLE(…) references the default file uses.</p>
+  <div class="row"><button class="primary" id="ussSave" ${n?'':'disabled'}>Save ${esc(file)}.json</button><button id="ussCopy">Copy JSON</button></div>
+  <textarea readonly id="ussText" aria-label="JSON preview" style="min-height:220px">${esc(json)}</textarea>`}
+
+/* ----- events ----- */
+function ussMoveTo(b,sid,gid,index){const f=ussFind(b,sid);if(!f)return;ui.landed=sid;f.g.swatches.splice(f.si,1);const g=b.groups.find(x=>x.id===gid);if(!g)return;
+  if(index==null||index>g.swatches.length)index=g.swatches.length;g.swatches.splice(index,0,f.s)}
+function ussCommit(b,re=true){save();if(re)renderMain()}
+document.addEventListener('click',e=>{if(ui.view!=='uss')return;const t=e.target.closest('button,.utile');if(!t)return;const b=ussCur();if(!b)return;const d=t.dataset;
+  if(t.classList.contains('utile')){ui.ussSel=ui.ussSel===d.usw?null:d.usw;renderMain();const el=document.querySelector(`[data-usw="${d.usw}"]`);if(el)el.focus();return}
+  if(d.utab){ui.ussTab=d.utab;renderMain();return}
+  const id=t.id;
+  if(id==='ussClose'){ui.view='swatches';render();return}
+  if(id==='ussNewSet'){const nb=ussNew('Swatch set '+(state.uss.length+1));nb.gen={...b.gen};state.uss.push(nb);state.ussOpen=nb.id;ui.ussTab='gen';ui.ussSel=null;ussCommit(nb);const n=$('ussName');if(n){n.focus();n.select()}return}
+  if(id==='ussDelSet'){ui.ussDelSet=b.id;renderMain();return}
+  if(id==='ussDelNo'){ui.ussDelSet=null;renderMain();return}
+  if(id==='ussDelYes'){state.uss=state.uss.filter(x=>x!==b);state.ussOpen=state.uss[0]?.id||null;ui.ussDelSet=null;ui.ussSel=null;ussCommit(b);return}
+  if(id==='ussGo'||id==='ussShuffle'||id==='ussAppend'){if(id==='ussShuffle')ui.rand.seed=Math.floor(Math.random()*1e9);
+    if(b.gen.source==='pal'&&!state.palettes.some(p=>p.id===b.gen.pal)){toast('Choose a palette first');return}
+    const n=ussGenerate(b,id==='ussAppend');if(!n){toast('The source has no colours to work from');return}ui.ussTab='arrange';ussCommit(b);toast((id==='ussAppend'?'Added ':'Generated ')+n+' swatches');return}
+  if(id==='ussAddGroup'){b.groups.push({id:uid(),name:'Group '+(b.groups.length+1),swatches:[]});ussCommit(b);return}
+  if(id==='ussRenameAll'){b.groups.forEach(g=>g.swatches.forEach((s,i)=>s.name=ussName(s,g.name,i,b.gen.naming)));ussCommit(b);toast('Renamed all swatches');return}
+  if(d.usort){const g=b.groups.find(x=>x.id===d.usort);g.swatches.sort((x,y)=>oklch(x.p).L-oklch(y.p).L);ussCommit(b);return}
+  if(d.uaddsw){const g=b.groups.find(x=>x.id===d.uaddsw),last=g.swatches[g.swatches.length-1],s={id:uid(),p:last?last.p:'#808080',s:last?last.s:'#404040',m:'Default'};s.name=ussName(s,g.name,g.swatches.length,b.gen.naming);g.swatches.push(s);ui.ussSel=s.id;ussCommit(b);return}
+  if(d.udelg){ui.ussDelG=d.udelg;renderMain();return}
+  if(d.udelgn){ui.ussDelG=null;renderMain();return}
+  if(d.udelgy){b.groups=b.groups.filter(x=>x.id!==d.udelgy);ui.ussDelG=null;ussCommit(b);return}
+  if(d.uswap){const f=ussFind(b,d.uswap);[f.s.p,f.s.s]=[f.s.s,f.s.p];ussCommit(b);return}
+  if(d.udup){const f=ussFind(b,d.udup),c={...f.s,id:uid()};f.g.swatches.splice(f.si+1,0,c);ui.ussSel=c.id;ussCommit(b);return}
+  if(d.udel){const f=ussFind(b,d.udel);f.g.swatches.splice(f.si,1);ui.ussSel=null;ussCommit(b);return}
+  if(d.udone){ui.ussSel=null;renderMain();return}
+  if(d.ugo){ui.ussSel=d.ugo;ui.ussTab='arrange';renderMain();const el=document.querySelector(`[data-usw="${d.ugo}"]`);if(el)el.scrollIntoView({block:'center'});return}
+  if(id==='ussToPal'){let p=state.palettes.find(x=>x.id===b.linkPal);if(!p){p={id:uid(),name:b.name+' (swatches)'};state.palettes.push(p);b.linkPal=p.id}
+    p.updated=Date.now();p.groups=b.groups.filter(g=>g.swatches.length).map(g=>({id:uid(),name:g.name,colors:[...new Set(g.swatches.flatMap(s=>[s.p,s.s]))]}));
+    state.open=p.id;ui.view='analysis';ui.scope='all';save();render();toast('Saved as palette '+p.name);return}
+  if(id==='ussMatApply'){const m=$('ussMatAll').value.trim()||'Default';ussAll(b).forEach(s=>s.m=m);ussCommit(b);toast('Material set on every swatch');return}
+  if(id==='ussCopy'){const ta=$('ussText');navigator.clipboard.writeText(ta.value).then(()=>toast('Copied'),()=>{ta.focus();ta.select();toast('Select all and copy')});return}
+  if(id==='ussSave'){saveText(((b.file||'').replace(/[^A-Za-z0-9_]/g,'')||'MySwatches')+'.json',ussJSON(b));return}
+});
+document.addEventListener('input',e=>{if(ui.view!=='uss')return;const t=e.target,b=ussCur();if(!b)return;
+  if(t.id==='ussName'){b.name=t.value;save();return}
+  if(t.id==='ussCount'||t.id==='ussCountN'){let v=Math.round(+t.value);if(!v)return;v=Math.max(1,Math.min(USS_MAX,v));b.gen.count=String(v);(t.id==='ussCount'?$('ussCountN'):$('ussCount')).value=v;$('ussCountWarn').innerHTML=ussCountWarn(v);save();return}
+  if(t.id==='ussOff'){b.gen.offset=+t.value;$('ussOffo').textContent=t.value;save();return}
+  if(t.id==='ussNDark'||t.id==='ussNLight'){const k=t.id==='ussNDark'?'ndark':'nlight';b.gen[k]=+t.value;$(t.id+'o').textContent=t.value;t.style.accentColor=safe(+t.value/100,0,0);save();return}
+  if(t.id==='ussFile'){b.file=t.value;save();return}
+  if(t.dataset.gname){const g=b.groups.find(x=>x.id===t.dataset.gname);if(g){g.name=t.value;save()}return}
+  if(t.dataset.sf){const f=ussFind(b,t.dataset.sid);if(!f)return;const k=t.dataset.sf;
+    if(k==='name'){f.s.name=t.value;const tl=document.querySelector(`[data-usw="${f.s.id}"] .unm`);if(tl)tl.textContent=t.value}
+    else if(k==='m')f.s.m=t.value;
+    else if(k==='p'||k==='s'){f.s[k]=t.value.toLowerCase();document.querySelectorAll(`[data-usw="${f.s.id}"] .uchip,.ued .uchip`).forEach(el=>el.style.setProperty('--'+k,t.value))}
+    save();return}});
+document.addEventListener('change',e=>{if(ui.view!=='uss')return;const t=e.target,b=ussCur();if(!b)return;
+  if(t.id==='ussPick'){state.ussOpen=t.value;ui.ussSel=null;ui.ussTab=null;save();renderMain();return}
+  if(t.id==='ussPal'){b.gen.pal=t.value;save();return}
+  if(t.id==='ussName'){renderMain();return}
+  if(t.id==='ussFile'){b.file=t.value.replace(/[^A-Za-z0-9_]/g,'');save();renderMain();return}
+  if(t.id==='ussFixed'){b.gen.nval=t.checked?'fixed':'gap';save();renderMain();const el=$(t.id);if(el)el.focus();return}
+  if(t.id==='ussSrc'){b.gen.source=t.checked?'pal':'gen';save();renderMain();const el=$(t.id);if(el)el.focus();return}
+  if(t.id==='ussOne'){b.gen.grouping=t.checked?'one':'groups';save();renderMain();const el=$(t.id);if(el)el.focus();return}
+  if(t.id==='ussBal'||t.id==='ussSnap'){b.gen[t.id==='ussBal'?'balance':'snap']=t.checked?'on':'off';save();renderMain();const el=$(t.id);if(el)el.focus();return}
+  const fl={ussActive:'active',ussAddP:'addP',ussAddS:'addS',ussRemP:'remP',ussRemS:'remS'}[t.id];if(fl){b[fl]=t.checked;save();renderMain();return}
+  if(t.dataset.umove){ussMoveTo(b,t.dataset.umove,t.value);ussCommit(b);return}
+  if(t.dataset.sf){const f=ussFind(b,t.dataset.sid);if(!f)return;const k=t.dataset.sf;
+    if(k==='ph'||k==='sh'){const h=norm(t.value);if(!h){toast('Enter a hex code like #FF8800');t.value=f.s[k[0]].toUpperCase();return}f.s[k[0]]=h}
+    ussCommit(b)}});
+// drag and drop
+let ussDrag=null;
+const clearDrop=()=>document.querySelectorAll('.dropL,.dropR,.dropT,.dropB,.over').forEach(el=>el.classList.remove('dropL','dropR','dropT','dropB','over'));
+document.addEventListener('dragstart',e=>{if(ui.view!=='uss')return;const t=e.target;
+  if(t.dataset&&t.dataset.usw){ussDrag={type:'sw',id:t.dataset.usw};e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',t.dataset.usw);t.classList.add('dragging')}
+  else if(t.dataset&&t.dataset.ghandle){ussDrag={type:'grp',id:t.dataset.ghandle};e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',t.dataset.ghandle);const sec=t.closest('.ugroup');if(sec)e.dataTransfer.setDragImage(sec,20,20)}});
+document.addEventListener('dragend',()=>{ussDrag=null;clearDrop();document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'))});
+document.addEventListener('dragover',e=>{if(!ussDrag)return;e.preventDefault();clearDrop();
+  if(ussDrag.type==='sw'){const tile=e.target.closest('.utile');if(tile){const r=tile.getBoundingClientRect();tile.classList.add(e.clientX<r.left+r.width/2?'dropL':'dropR');return}
+    const grid=e.target.closest('.ugroup');if(grid)grid.querySelector('.ugrid').classList.add('over')}
+  else{const sec=e.target.closest('.ugroup');if(sec){const r=sec.getBoundingClientRect();sec.classList.add(e.clientY<r.top+r.height/2?'dropT':'dropB')}}});
+document.addEventListener('drop',e=>{if(!ussDrag)return;e.preventDefault();e.stopImmediatePropagation();const b=ussCur(),dg=ussDrag;ussDrag=null;clearDrop();if(!b)return;
+  if(dg.type==='sw'){const tile=e.target.closest('.utile'),sec=e.target.closest('.ugroup');if(!sec)return;const gid=sec.dataset.ug;
+    if(tile){if(tile.dataset.usw===dg.id)return;const r=tile.getBoundingClientRect(),after=e.clientX>=r.left+r.width/2,g=b.groups.find(x=>x.id===gid);
+      const f=ussFind(b,dg.id);f.g.swatches.splice(f.si,1);let idx=g.swatches.findIndex(s=>s.id===tile.dataset.usw);g.swatches.splice(idx+(after?1:0),0,f.s)}
+    else ussMoveTo(b,dg.id,gid);
+    ui.ussSel=dg.id;ussCommit(b)}
+  else{const sec=e.target.closest('.ugroup');if(!sec||sec.dataset.ug===dg.id)return;const r=sec.getBoundingClientRect(),after=e.clientY>=r.top+r.height/2;
+    const gi=b.groups.findIndex(x=>x.id===dg.id),[g]=b.groups.splice(gi,1);let ti=b.groups.findIndex(x=>x.id===sec.dataset.ug);b.groups.splice(ti+(after?1:0),0,g);ussCommit(b)}},true);
+document.addEventListener('keydown',e=>{if(ui.view!=='uss')return;const t=e.target;
+  if(t.id==='ussName'&&e.key==='Enter'){e.preventDefault();t.blur();renderMain();return}
+  if(t.classList&&t.classList.contains('utile')){
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();t.click();return}
+    if(e.altKey&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();const b=ussCur(),f=ussFind(b,t.dataset.usw),flat=b.groups.flatMap(g=>g.swatches.map(s=>[g,s]));
+      const i=flat.findIndex(x=>x[1]===f.s),j=i+(e.key==='ArrowLeft'?-1:1);if(j<0||j>=flat.length)return;const[tg,ts]=flat[j];
+      f.g.swatches.splice(f.si,1);const idx=tg.swatches.indexOf(ts);tg.swatches.splice(e.key==='ArrowLeft'?idx:idx+1,0,f.s);ussCommit(b);const el=document.querySelector(`[data-usw="${f.s.id}"]`);if(el)el.focus()}}});
+const COMP=[['Red / cyan',25,205],['Orange / azure',55,240],['Yellow / blue',100,265],['Lime / violet',130,300],['Green / magenta',150,330],['Teal / rose',180,0]];
+const RANGES=[['Red',25],['Orange',55],['Yellow',100],['Green',145],['Cyan',195],['Azure',240],['Blue',265],['Violet',300],['Magenta',330],['Grey',null]];
+const lab=(L,C,H)=>[L,C*Math.cos(H*Math.PI/180),C*Math.sin(H*Math.PI/180)];
+function nearest(cs){const P=cs.map(c=>[oklab(c),hexRgb(c).map(v=>Math.round(v*255))]);
+  return([L,a,b])=>{let best,bd=1e9;for(const[o,rgb]of P){const d=(o[0]-L)**2+(o[1]-a)**2+(o[2]-b)**2;if(d<bd){bd=d;best=rgb}}return best}}
+function paint(id,w,h,scale,f,near){const c=$(id);if(!c)return;c.width=w;c.height=h;if(scale)c.style.width=w*scale+'px';
+  const x=c.getContext('2d'),img=x.createImageData(w,h);
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const v=f(w>1?i/(w-1):0,h>1?j/(h-1):0);if(!v)continue;const rgb=near(v),k=(j*w+i)*4;img.data[k]=rgb[0];img.data[k+1]=rgb[1];img.data[k+2]=rgb[2];img.data[k+3]=255}
+  x.putImageData(img,0,0)}
+function render(){renderList();renderMain()}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;const p=cur();
+  if(t.dataset.open){state.open=t.dataset.open;ui.sel.clear();if(ui.view==='random'||ui.view==='uss')ui.view='swatches';save();render();return}
+  if(t.id==='openUss'){ui.view='uss';ui.ussTab=null;ui.ussSel=null;renderMain();revealMain();return}
+  if(t.id==='openRandom'){ui.view='random';ui.rand.name='';renderMain();const n=$('rName');if(n){n.focus({preventScroll:true});n.select()}revealMain();return}
+  if(t.id==='rClose'){ui.view='swatches';renderMain();return}
+  if(t.id==='rShuffle'){ui.rand.seed=Math.floor(Math.random()*1e9);ui.rand.name='';renderMain();return}
+  if(t.id==='rAddSrc'){const sp=state.palettes.find(x=>x.id===presetOf(ui.rand.preset).fromPalette);if(!sp)return;lastRand.forEach(g=>sp.groups.push({id:uid(),name:g.name+' (generated)',colors:g.colors.slice()}));state.open=sp.id;ui.view='swatches';ui.rand.seed=Math.floor(Math.random()*1e9);touch(sp);toast('Added '+lastRand.length+' sub-palettes to '+sp.name);return}
+  if(t.id==='genToRand'&&p){ui.rand.preset='pal:'+p.id;ui.rand.srcGroups=ui.scope==='all'||!p.groups.some(g=>g.id===ui.scope)?null:[ui.scope];ui.rand.spread='auto';ui.rand.nTint='auto';ui.rand.neutral=true;ui.view='random';renderMain();return}
+  if(t.id==='rSave'){readRand();const np={id:uid(),name:$('rName').value.trim()||defName(ui.rand),updated:Date.now(),groups:lastRand.map(g=>({id:uid(),name:g.name,colors:g.colors.slice()}))};state.palettes.push(np);state.open=np.id;ui.view='swatches';ui.fresh=true;ui.rand.name='';ui.rand.seed=Math.floor(Math.random()*1e9);save();render();toast('Saved '+np.name);return}
+  const stp=t.closest('[data-step]');if(stp&&t.dataset.v!=null){if(t.disabled)return;const k=stp.dataset.step;if(k.includes('.')){const[a,b]=k.split('.');ui[a][b]=t.dataset.v;if(a==='ussg')save()}else ui.rand[k]=t.dataset.v;if(k==='monoHue'&&t.dataset.v!=='custom'&&t.dataset.v!=='auto')ui.rand.monoDeg=+t.dataset.v;renderMain();const nb=document.querySelector(`[data-step="${k}"] .st.on`);if(nb)nb.focus();return}
+  if(t.dataset.chue){const d=t.dataset.chue,c=ui.rand.customHues=(ui.rand.customHues||[]).slice();const i=c.indexOf(d);i<0?c.push(d):c.splice(i,1);ui.rand.nTint='auto';renderMain();const nb=document.querySelector(`[data-chue="${d}"]`);if(nb)nb.focus();return}
+  if(t.dataset.view){ui.view=t.dataset.view;renderMain();return}
+  if(t.dataset.copy){copy(t.dataset.copy);return}
+  if((t.id==='accFixCvd'||t.id==='accFixProj')&&p){const proj=t.id==='accFixProj',keys=['p','d','t',...(proj?['proj']:[])],lo=proj?.16:.02,hi=proj?.9:.99;
+    const groups=p.groups.filter(g=>g.colors.length).map(g=>({name:g.name,colors:g.colors.slice()}));if(proj)accBoost(groups,lo,hi);const left=accRepair(groups,keys,{lo,hi});
+    const np={id:uid(),name:p.name+(proj?' (projector-ready)':' (colour-blind safe)'),updated:Date.now(),groups:groups.map(g=>({id:uid(),name:g.name,colors:[...new Set(g.colors)]}))};state.palettes.push(np);state.open=np.id;ui.view='analysis';ui.scope='all';save();render();
+    toast(left?'Saved '+np.name+'. '+left+' pair'+(left>1?'s':'')+' could not be separated':'Saved '+np.name);return}
+  if(t.id==='exportBtn'){ui.exp.open=!ui.exp.open;ui.expEnter=ui.exp.open;renderMain();return}
+  if(t.id==='expClose'){ui.exp.open=false;renderMain();return}
+  if(t.id==='expCopy'){const ta=$('expText');navigator.clipboard.writeText(ta.value).then(()=>toast('Copied'),()=>{ta.focus();ta.select();toast('Select all and copy')});return}
+  if(t.id==='expSave'&&p){const files=exportFiles(p);if(!files.length)return;(async()=>{let d=null;try{d=window.claude&&await window.claude.use('downloads')}catch(e){}
+    if(!d){const single=files.length===1&&files[0].fmt==='txt';if(window.parent===window){const blob=single?new Blob([files[0].text],{type:'text/plain'}):makeZip(files),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=single?files[0].name:slug(p.name)+(ui.exp.fmt==='all'?'-all-formats':'-'+ui.exp.fmt)+'.zip';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Saved');return}toast('Saving files is not available here. Use Copy text instead.');return}
+    const single=files.length===1&&files[0].fmt==='txt';
+    try{await d.save(single?{filename:files[0].name,data:files[0].text}:{filename:slug(p.name)+(ui.exp.fmt==='all'?'-all-formats':'-'+ui.exp.fmt)+'.zip',data:makeZip(files)});toast('Saved')}
+    catch(err){toast(err&&err.code==='declined'?'Save cancelled':'Could not save: '+((err&&err.message)||'not available'))}})();return}
+  if(t.dataset.pick){const c=t.dataset.pick;ui.sel.has(c)?ui.sel.delete(c):ui.sel.add(c);renderMain();return}
+  if(t.dataset.selall){const cs=t.dataset.selall.split(',');if(cs.every(c=>ui.sel.has(c)))cs.forEach(c=>ui.sel.delete(c));else cs.forEach(c=>ui.sel.add(c));renderMain();return}
+  if(t.id==='selClear'){ui.sel.clear();renderMain();return}
+  if(t.dataset.famnew&&p){const fs=families([...new Set(all(p))]).find(f=>f.name===t.dataset.famnew);if(fs){p.groups.push({id:uid(),name:fs.name,colors:sortColors(fs.cs,'light')});touch(p);toast('Made sub-palette '+fs.name)}return}
+  if(t.dataset.selnew&&p&&ui.sel.size){const cs=[...ui.sel],name=$('selName').value.trim()||'Selection';if(t.dataset.selnew==='move')p.groups.forEach(g=>g.colors=g.colors.filter(c=>!ui.sel.has(c)));p.groups.push({id:uid(),name,colors:cs});ui.sel.clear();touch(p);toast((t.dataset.selnew==='move'?'Moved ':'Copied ')+cs.length+' colours into '+name);return}
+  if(t.id==='selMoveTo'&&p&&ui.sel.size){const g=p.groups.find(g=>g.id===$('selTarget').value);if(!g)return;const cs=[...ui.sel];p.groups.forEach(x=>{if(x!==g)x.colors=x.colors.filter(c=>!ui.sel.has(c))});cs.forEach(c=>{if(!g.colors.includes(c))g.colors.push(c)});ui.sel.clear();touch(p);toast('Moved '+cs.length+' colours to '+g.name);return}
+  if(t.id==='genNew'&&p){const np={id:uid(),name:p.name+' · '+GEN[ui.gen.mode][0],updated:Date.now(),groups:lastGen.map(g=>({id:uid(),name:g.name,colors:g.colors.slice()}))};state.palettes.push(np);state.open=np.id;ui.view='swatches';ui.fresh=true;ui.scope='all';save();render();toast('Saved as a new palette');return}
+  if(t.id==='genAdd'&&p){const tag=GEN[ui.gen.mode][0].toLowerCase();lastGen.forEach(g=>p.groups.push({id:uid(),name:g.name+' ('+tag+')',colors:g.colors.slice()}));ui.view='swatches';touch(p);toast('Added '+lastGen.length+' sub-palette'+(lastGen.length>1?'s':''));return}
+  if(t.id==='addPal'){ui.view='swatches';const np={id:uid(),name:'Untitled palette',updated:Date.now(),groups:[{id:uid(),name:'Main',colors:[]}]};state.palettes.push(np);state.open=np.id;ui.sel.clear();save();render();inlineRename(np.name,v=>{np.name=v;touch(np)});revealMain();return}
+  if(t.id==='exp'){const s=JSON.stringify({palettes:state.palettes,uss:state.uss||[]});$('io').value=s;navigator.clipboard.writeText(s).then(()=>toast('Backup copied'),()=>{$('io').select();toast('Select and copy the text')});return}
+  if(t.id==='imp'){try{let d=JSON.parse($('io').value);if(d&&!Array.isArray(d)&&Array.isArray(d.palettes)){(d.uss||[]).forEach(x=>{x.id=uid();(state.uss=state.uss||[]).push(x)});d=d.palettes}if(!Array.isArray(d))throw 0;d.forEach(x=>{x.id=uid();x.groups.forEach(g=>g.id=uid());state.palettes.push(x)});save();render();toast(`Restored ${d.length} palettes`)}catch(err){toast('That text is not a Palette Shelf backup')}return}
+  if(!p)return;
+  if(t.dataset.add){const g=p.groups.find(g=>g.id===t.dataset.add);const raw=$('hex-'+g.id).value;const cs=raw.trim()?raw.split(/[\s,;]+/).map(norm).filter(Boolean):[norm($('pick-'+g.id).value)];if(!cs.length){toast('Enter hex codes like #ff8800');return}cs.forEach(c=>{if(!g.colors.includes(c))g.colors.push(c)});touch(p);return}
+  if(t.dataset.rm){const[gid,c]=t.dataset.rm.split('|');const g=p.groups.find(g=>g.id===gid);g.colors=g.colors.filter(x=>x!==c);touch(p);return}
+  if(t.dataset.apply){const g=p.groups.find(g=>g.id===t.dataset.apply);g.colors=swSort(g.colors);touch(p);toast('Order saved');return}
+  if(t.dataset.dg){p.groups=p.groups.filter(g=>g.id!==t.dataset.dg);touch(p);return}
+  if(t.dataset.rg){const g=p.groups.find(g=>g.id===t.dataset.rg);inlineRename(g.name,v=>{g.name=v;touch(p)});return}
+  if(t.id==='rename'){inlineRename(p.name,v=>{p.name=v;touch(p)});return}
+  if(t.id==='addGroup'){p.groups.push({id:uid(),name:$('newGroup').value.trim()||'Sub-palette',colors:[]});touch(p);return}
+  if(t.id==='copyAll'){copy(all(p).join(', '));return}
+  if(t.id==='delPal'){$('confirm').innerHTML=`<div class="row"><span>Delete “${esc(p.name)}” and all its colours?</span><button class="danger" id="yesDel">Delete</button><button id="noDel">Keep it</button></div>`;return}
+  if(t.id==='yesDel'){state.palettes=state.palettes.filter(x=>x.id!==p.id);state.open=state.palettes[0]?.id||null;save();render();return}
+  if(t.id==='noDel'){$('confirm').innerHTML='';return}
+  if(t.id==='okRen'){const v=$('renIn').value.trim();if(v)inlineRename.cb(v);else render();return}
+});
+function inlineRename(old,cb){inlineRename.cb=cb;$('confirm').innerHTML=`<div class="row"><input id="renIn" value="${esc(old)}"><button class="primary" id="okRen">Save name</button><button id="noDel">Cancel</button></div>`;$('renIn').focus();$('renIn').select()}
+function importFiles(files){
+  let ok=0,bad=0;
+  let sets=0;Promise.all([...files].map(f=>f.text().then(t=>{if(/\.json$/i.test(f.name)||/^\s*[\[{]/.test(t)){const bs=parseUSS(t);if(bs){state.uss=state.uss||[];bs.forEach(x=>state.uss.push(x));state.ussOpen=bs[0].id;sets+=bs.length;return}bad++;return}const p=parsePalette(t,f.name);if(p){state.palettes.push(p);state.open=p.id;ok++}else bad++})))
+  .then(()=>{if(sets){ui.view='uss';ui.ussTab='arrange';ui.ussSel=null;save();render();toast('Imported '+sets+' swatch set'+(sets>1?'s':''));return}save();render();toast(ok?`Imported ${ok} palette${ok>1?'s':''}`+(bad?`, skipped ${bad} unreadable file${bad>1?'s':''}`:''):'Those files are not palettes Palette Shelf can read (.gpl, .txt, .hex, Universal Swatch Slots .json)')});
+}
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files.length)importFiles(e.dataTransfer.files)});
+document.addEventListener('change',e=>{if(e.target.id==='expGroup'){ui.exp.group=e.target.value;renderMain();return}if(e.target.id==='swSelect'){ui.sw.select=e.target.checked;renderMain();return}if(e.target.closest&&e.target.closest('#randPanel'))return;if(e.target.id==='scope'){ui.scope=e.target.value;renderMain();return}if(e.target.id==='gMode'){ui.gen.mode=e.target.value;renderMain();return}if(e.target.id==='gpl'){importFiles(e.target.files);e.target.value='';return}if(e.target.id==='sortPal'){ui.sortPal=e.target.value;renderList()}});
+document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#randPanel')){if(e.target.classList.contains('srcg')){const bs=[...document.querySelectorAll('.srcg')],on=bs.filter(b=>b.checked).map(b=>b.dataset.g);if(!on.length){e.target.checked=true;toast('Keep at least one sub-palette');return}ui.rand.srcGroups=on.length===bs.length?null:on;ui.rand.nTint='auto';renderMain();return}if(e.target.id==='rPreset'){ui.rand.preset=e.target.value;ui.rand.srcGroups=null;ui.rand.neutral=presetOf(e.target.value).neutral;ui.rand.nTint='auto';ui.rand.emissive=e.target.value==='monoscreen'||ui.rand.emissive;renderMain();return}readRand();if(['rRamps','rNeutral','rLegHues','hwRand'].includes(e.target.id)){renderMain();return}if(e.target.id!=='rName')updateRandom();return}const gk={gSteps:'steps',gExt:'ext',gRamp:'ramp',gShift:'shift',gRot:'rot',gChroma:'chroma'}[e.target.id];if(gk){ui.gen[gk]=+e.target.value;$(e.target.id+'o').textContent=e.target.value+e.target.dataset.unit;updateGen();return}if(e.target.id==='search'){ui.q=e.target.value;renderList()}});
+document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classList.contains('st')&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const bs=[...e.target.parentNode.children].filter(b=>!b.disabled),i=bs.indexOf(e.target),d=e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1,n=bs[i+d];if(n)n.click();return}if(e.key!=='Enter')return;const id=e.target.id;if(id==='rName'){e.preventDefault();e.target.blur();return}else if(id==='newGroup')$('addGroup').click();else if(id==='renIn')$('okRen').click();else if(id.startsWith('hex-'))document.querySelector(`[data-add="${id.slice(4)}"]`).click()});
+function isDark(){const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches}
+function paintThemeBtn(){const b=$('themeBtn');if(b)b.textContent=isDark()?'☀ Light':'☾ Dark'}
+try{const t=localStorage.getItem('palette-shelf-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}
+document.addEventListener('click',e=>{if(e.target.closest('#themeBtn')){const t=isDark()?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('palette-shelf-theme',t)}catch(err){}paintThemeBtn();renderMain()}});
+render();paintThemeBtn();
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{paintThemeBtn();if(ui.view==='analysis')renderMain()})}catch(e){}
+</script>

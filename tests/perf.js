@@ -1,0 +1,14 @@
+const { app, BrowserWindow } = require('electron');const fs=require('fs');const path=require('path');
+const page=process.argv[process.argv.length-1];const html=fs.readFileSync(page,'utf8');
+const tmp=path.join(require('os').tmpdir(),'_perf.html');fs.writeFileSync(tmp,'<!doctype html><html><head><meta charset="utf-8"></head><body>'+html+'</body></html>');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+app.whenReady().then(async()=>{const w=new BrowserWindow({width:1300,height:1600,show:true});const js=c=>w.webContents.executeJavaScript(c);
+ await w.loadFile(tmp);await wait(300);await js("localStorage.clear();location.reload()");await wait(800);
+ const t=async(name,code,n=5)=>{try{const r=await js(`(()=>{const ts=[];for(let i=0;i<${n};i++){const a=performance.now();${code};document.body.offsetHeight;ts.push(performance.now()-a)}ts.sort((a,b)=>a-b);return ts[Math.floor(ts.length/2)]})()`);console.log("PERF",name,r.toFixed(1)+"ms")}catch(e){console.log("PERF",name,"ERR",e.message.split("\n")[0])}};
+ await t('swatches',"ui.view='swatches';renderMain()");
+ await t('analysis',"ui.view='analysis';renderMain()");
+ await t('random',"ui.view='random';ui.rand.seed++;renderMain()");
+ await t('random-cvd-proj',"ui.view='random';ui.rand.cvd=true;ui.rand.proj=true;ui.rand.count=16;ui.rand.seed++;renderMain()",3);
+ await js("document.getElementById('openUss').click()");await t('uss-gen-60',"const b=ussCur();b.gen.count='60';b.gen.pairing='neutral';ussGenerate(b,false)",3);
+ await t('uss-analysis',"ui.ussTab='analysis';renderMain()");
+ app.quit()});

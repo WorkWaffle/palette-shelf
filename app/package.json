@@ -1,0 +1,36 @@
+{
+  "name": "palette-shelf",
+  "productName": "Palette Shelf",
+  "version": "1.9.0",
+  "description": "Personal colour palette manager",
+  "main": "main.js",
+  "author": "Palette Shelf",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --linux AppImage"
+  },
+  "build": {
+    "appId": "local.paletteshelf",
+    "productName": "Palette Shelf",
+    "files": [
+      "main.js",
+      "index.html",
+      "icon.png"
+    ],
+    "linux": {
+      "target": "AppImage",
+      "category": "Graphics",
+      "icon": "icon.png",
+      "artifactName": "Palette-Shelf-${version}-x86_64.AppImage",
+      "syncDesktopName": true
+    },
+    "publish": null
+  },
+  "devDependencies": {
+    "@fontsource/space-mono": "5.3.0",
+    "electron": "44.5.1",
+    "electron-builder": "26.17.0"
+  },
+  "desktopName": "palette-shelf.desktop"
+}
