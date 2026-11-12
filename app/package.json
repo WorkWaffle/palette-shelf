@@ -1,7 +1,7 @@
 {
   "name": "palette-shelf",
   "productName": "Palette Shelf",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "description": "Personal colour palette manager",
   "main": "main.js",
   "author": "Palette Shelf",
@@ -29,8 +29,8 @@
   },
   "devDependencies": {
     "@fontsource/space-mono": "5.3.0",
-    "electron": "44.5.1",
-    "electron-builder": "26.17.0"
+    "electron": "44.11.1",
+    "electron-builder": "26.18.0"
   },
   "desktopName": "palette-shelf.desktop"
 }

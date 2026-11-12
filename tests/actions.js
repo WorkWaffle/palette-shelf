@@ -10,7 +10,7 @@ const key=(sel,k,o={})=>`(()=>{const e=document.querySelector(${JSON.stringify(s
 const A=[
  ['rename',click('#rename')],['rename-type',setv('#renIn','Renamed Walk')],['rename-ok',click('#okRen')],
  ['add-hex',setv('[id^=hex-]','#123456 #abcdef, #f00')],['add-hex-go',click('[data-add]')],
- ['rm-colour',click('.sw .x')],
+ ['rm-colour',click('.sw [data-rm]')],
  ['sort-light',click('[data-step="sw.sort"] [data-v=light]')],['keep-order',click('[data-apply]')],
  ['new-group',setv('#newGroup','Extra')],['new-group-go',click('#addGroup')],
  ['rename-group',click('[data-rg]')],['rename-group-type',setv('#renIn','Leafy')],['rename-group-ok',click('#okRen')],
@@ -27,7 +27,7 @@ const A=[
  ['open-rand',click('#openRandom')],['rand-name',setv('#rName','My random')],['rand-count',setv('#rCount','10')],['rand-ramps-off',click('#rRamps')],
  ['rand-cvd',click('#rCvd')],['rand-leg',click('[data-step=legible] [data-v="3"]')],['rand-aim',click('[data-step=legAim] [data-v=light]')],
  ['rand-tetrad',click('[data-step=spread] [data-v=tetrad]')],['rand-base',click('[data-step=baseHue] [data-v="145"]')],['rand-save',click('#rSave')],
- ['backup',"document.querySelector('details summary').click()"],['backup-copy',click('#exp')],['backup-restore',click('#imp')],
+ ['backup',"document.querySelector('details summary').click()"],['backup-copy',click('#exp')],['backup-restore',click('#imp')],['backup-restore-add',click('[data-rest=add]')],
  ['del-pal',click('#delPal')],['del-pal-no',click('#noDel')],['del-pal2',click('#delPal')],['del-pal-yes',click('#yesDel')],
  ['search',setv('#search','sea')],['search-clear',setv('#search','')],['sort-name',setv('#sortPal','name','change')],
  ['uss',click('#openUss')],['uss-count',setv('#ussCountN','20')],['uss-neutral',click('[data-step="ussg.pairing"] [data-v=neutral]')],['uss-dark',setv('#ussNDark','12')],

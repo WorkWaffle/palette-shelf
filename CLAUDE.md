@@ -6,15 +6,16 @@ Personal colour-palette manager: palettes with sub-palettes, import/export (GIMP
 - `palette-shelf.html` is the whole app: CSS, markup and JS in one file, no framework, no build step. It is also published as a claude.ai artifact, so it must stay a fragment (no doctype or head) with the Google Fonts `<link>` line intact.
 - `app/` is the Electron wrapper (Linux AppImage). `app/index.html` is generated, never edited.
 - `build.py` makes `app/index.html` and `dist/palette-shelf-windows.html` (single file, fonts embedded as base64, CSP added). Run `cd app && npm install` once first.
+- Node: Electron 44 needs Node ≥ 22.12. The system Node is 18, so Node 22 is unpacked at `~/.local/opt/node22`; put `~/.local/opt/node22/bin` first on `PATH` before any `npm` command in `app/`. Electron and electron-builder versions are pinned exactly in `app/package.json`.
 - `tests/` holds the regression scripts (below).
 
 ## Commands
 - Build the AppImage: `python3 build.py && cd app && npm run dist` (bump `version` in `app/package.json` first).
 - Run the app: `python3 build.py && cd app && npm start`.
-- Headless tests need a display: prefix with `xvfb-run -a -s "-screen 0 1400x2700x24"` and run with `app/node_modules/electron/dist/electron --no-sandbox`.
+- Electron tests run with `app/node_modules/electron/dist/electron --no-sandbox tests/<name>.js …`. On this machine they use the real display (windows flash up briefly). For headless runs, install `xvfb` and prefix with `xvfb-run -a -s "-screen 0 1400x2700x24"`. Pass the page as an absolute path: `audit.js` resolves relative paths against `tests/`.
 
 ## Code map (palette-shelf.html, in order)
-CSS; markup (rail with #addPal, #openRandom, #openUss); then script: globals and `state`/`ui`; list and main rendering; colour maths (OKLab/OKLCH with a per-hex cache: `oklab`, `oklch`, `luminance`, `ratio`, `sim`, `projSim`); analysis; Generate tab; random generator (`genRandom`, `mulberry` seeded RNG, `REL` harmony relations); harmony wheel (`hw*`); legibility (`makeLegible`); colour names (`NAMEDATA`, a compact string); import/export; accessibility repair (`accScan`, `accRepair`); swatches view; USS builder (`ussGenerate`, views, events); general listeners; theme; init line `render();paintThemeBtn();`.
+CSS; markup (rail with #addPal, #openRandom, #openUss, #saveWarn, backup panel); then script: globals and `state`/`ui`, `save()` (shows #saveWarn on failure), one-step undo (`snapshot()` before a destructive change, `toast(msg,{undoable:true})`, `doUndo()`, Ctrl+Z); list and main rendering; colour maths (OKLab/OKLCH with a per-hex cache: `oklab`, `oklch`, `luminance`, `ratio`, `sim`, `projSim`); analysis; Generate tab; random generator (`genRandom`, `mulberry` seeded RNG, `REL` harmony relations); harmony wheel (`hw*`); legibility (`makeLegible`); colour names (`NAMEDATA`, a compact string); import/export (`FMT` text formats, `EXPK` export kinds, `pngCanvas` strip and swatch sheet, `exportSave`); accessibility repair (`accScan`, `accRepair`); swatches view; colour editor (`ced*`, `ui.edit`); swatch drag and Alt+arrow moves (`moveColor`); USS builder (`ussGenerate`, views, events); general listeners; backups (`readBackup`, `askRestore`, `restoreBackup`), `.ase` and image import (`parseASE`, `imagePalette`, k-means in OKLab), `importFiles`, paste; editor fields and keyboard shortcuts (/ N R E ? Esc); theme; init line `render();paintThemeBtn();`.
 
 ## Rules that matter
 - **Do not change generator output by accident.** Same seed plus same options must give the same palettes and files. `tests/baseline.js` snapshots ~600 generator, export, parse and colour-maths results; run it before and after any change and `cmp` the JSON. A deliberate change (like the Tetradic definition) should be called out.
@@ -26,8 +27,9 @@ CSS; markup (rail with #addPal, #openRandom, #openUss); then script: globals and
 - Style: Space Mono, amber palette with light/dark toggle, row-style settings panels, stepped sliders, toggle switches.
 
 ## Tests (all in `tests/`)
-- `baseline.js <page.html> 'render\(\);paintThemeBtn\(\);' out.json`: Node data snapshot (no browser). Compare two runs with `cmp`.
+- `baseline.js <page.html> 'render\(\);paintThemeBtn\(\);' out.json`: Node data snapshot (no browser). Compare two runs with `cmp`. Reads its sample files from `tests/fixtures/`.
 - `uishots.js <page.html> <outdir>` (Electron): 24 screenshots at 1300 and 380 wide with seeded randomness; compare folders with `python3 cmpshots.py dirA dirB`.
-- `actions.js <page.html> out.json` (Electron): scripted click-through that records saved state after each step; compare runs. Some step selectors may be stale after UI changes.
+- `actions.js <page.html> out.json` (Electron): scripted click-through that records saved state after each step; compare runs. The `rand-base` step's selector is stale (it predates 1.9.0).
 - `testuss.js` (Electron, uses `app/index.html`): Satisfactory generate, drag, move, export.
-- `audit.js <page.html>`: layout audit across widths. `motion.js <page.html>`: checks each animation plays once. `perf.js <page.html>`: timings.
+- `audit.js <page.html>`: layout audit across widths; writes issues to `$TMPDIR/audit.json` (18 known entries, all present since 1.9.0; compare against a run on the previous version, not against zero). `motion.js <page.html>`: checks each animation plays once. `perf.js <page.html>`: timings.
+- `webkit_smoke.py <abs path to app/index.html> <out.png>` (Python + WebKitGTK): runs the page in the engine Tauri/Wails use; prints RESULT JSON with `errors`. See NATIVE.md.

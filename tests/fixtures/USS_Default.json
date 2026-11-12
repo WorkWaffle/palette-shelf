@@ -1,0 +1,73 @@
+[
+	{
+		"Name": "DefaultSwatches",
+		"PaletteName": "LOCTABLE(\"/Game/Loc/Swatches\", \"DefPal_Default_Name\")",
+		"IsActive": true,
+		"AddPrimaryColorsToPreset": true,
+		"AddSecondaryColorsToPreset": false,
+		"RemovePrimaryColorsToPreset": false,
+		"RemoveSecondaryColorsToPreset": false,
+		"Groups": [
+			{
+				"Name": "LOCTABLE(\"/Game/Loc/Swatches\", \"DefPal_Group_FactoryColours_Group_Name\")",
+				"Priority": 1,
+				"Swatches": [
+					{
+						"Name": "LOCTABLE(\"/Game/Loc/Swatches\", \"DefPal_FicsitOrange_Swatch_Name\")",
+						"Priority": 1,
+						"Material": "Default",
+						"PrimaryColor": "#FA9549FF",
+						"SecondaryColor": "#5F668CFF"
+					},
+					{
+						"Name": "Concrete",
+						"Priority": 0,
+						"Material": "Concrete",
+						"PrimaryColor": "#7F7F7FFF",
+						"SecondaryColor": "#3A3A3AFF"
+					}
+				]
+			},
+			{
+				"Name": "Accents",
+				"Priority": 0,
+				"Swatches": [
+					{
+						"Name": "Teal",
+						"Priority": 0,
+						"Material": "Default",
+						"PrimaryColor": "#1F6F78FF",
+						"SecondaryColor": "#E2E9BBFF"
+					},
+					{
+						"Name": "Rust",
+						"Priority": 1,
+						"Material": "Metal",
+						"PrimaryColor": "#C4551FFF",
+						"SecondaryColor": "#2E1B23FF"
+					}
+				]
+			}
+		]
+	},
+	{
+		"Name": "SecondSet",
+		"PaletteName": "Second set",
+		"IsActive": false,
+		"Groups": [
+			{
+				"Name": "Only",
+				"Priority": 0,
+				"Swatches": [
+					{
+						"Name": "Red",
+						"Priority": 0,
+						"Material": "Default",
+						"PrimaryColor": "#CC241DFF",
+						"SecondaryColor": "#282828FF"
+					}
+				]
+			}
+		]
+	}
+]

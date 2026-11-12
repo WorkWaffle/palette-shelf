@@ -264,23 +264,58 @@ select:disabled,input:disabled{opacity:.5}
 .steps.dots .st.on::before{border-color:var(--panel);outline:2px solid var(--fg)}
 .ctl.off .label{opacity:.5}
 .ctl output{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+/* undo toast, save warning, backups */
+.toast.act{pointer-events:auto;display:flex;gap:12px;align-items:center}
+.toast button{background:transparent;color:inherit;border-color:currentColor;padding:3px 10px;font-weight:600}
+.savewarn{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--danger);border-radius:8px;color:var(--danger);font-size:13px}
+.savewarn[hidden]{display:none}
+.restask{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--accent);border-radius:8px}
+/* swatch tools: edit, remove, drag */
+.sw .tools{position:absolute;top:4px;right:4px;display:flex;gap:4px;opacity:0}
+.sw:hover .tools,.sw:focus-within .tools{opacity:1}
+@media (hover:none){.sw .tools{opacity:.9}}
+.sw .tools button{min-width:32px;min-height:32px;padding:0 6px;font-size:14px;background:transparent;border-color:transparent;color:var(--ink)}
+.sw .tools button:focus-visible{border-color:var(--ink)}
+.sw[draggable=true] .chip{cursor:grab}
+.sw.dragging{opacity:.4}
+.sw.dropL{box-shadow:-4px 0 0 var(--accent)}.sw.dropR{box-shadow:4px 0 0 var(--accent)}
+.group.over{outline:2px dashed var(--accent);outline-offset:4px;border-radius:4px}
+.sw.landed,.group.landed{animation:land 160ms var(--ease-out)}
+.ced{display:flex;flex-wrap:wrap;gap:14px 20px;padding:12px 14px;border:1px solid var(--accent);border-radius:8px;background:var(--panel)}
+.ced .cprev{display:flex;flex-direction:column;gap:6px;min-width:150px}
+.ced .cpair{display:flex;height:64px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.ced .cpair span{flex:1;display:flex;align-items:flex-end;padding:4px 6px;font-family:var(--mono);font-size:11px}
+.ced .cfields{display:flex;flex-direction:column;gap:8px;flex:1 1 260px;min-width:0}
+.ced input[type=range]{width:100%}
+.ced .hexin{width:110px}
+.pairbtn{background:transparent;border:0;padding:0;display:flex;align-items:center;gap:6px;text-align:left;text-decoration:underline dotted;text-underline-offset:3px}
+/* analysis jump list and export preview */
+.jump{display:flex;flex-wrap:wrap;gap:6px}
+.jump a{font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:999px;color:var(--fg);text-decoration:none}
+.jump a:hover,.jump a:focus-visible{border-color:var(--accent)}
+.exp .pngprev{max-width:100%;max-height:320px;align-self:flex-start;border:1px solid var(--line);border-radius:4px;image-rendering:pixelated;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/12px 12px}
+.kbd{font-family:var(--mono);font-size:11px;padding:0 4px;border:1px solid var(--line);border-radius:3px}
+@media (prefers-reduced-motion:reduce){.sw.landed,.group.landed{animation:fade 120ms linear backwards}}
 </style>
 
 <div class="wrap">
   <aside class="rail">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><h1>Palette Shelf</h1><p class="sub">Your colours, sorted and kept.</p></div><button id="themeBtn" class="ghost" aria-label="Switch between light and dark mode" title="Switch between light and dark mode"></button></div>
-    <div class="row"><button class="primary" id="addPal" style="flex:1;line-height:1.25">Add<br>palette</button><button id="openRandom" style="flex:1;line-height:1.25">Random<br>palette</button></div>
+    <div class="row"><button class="primary" id="addPal" title="New palette (N)" style="flex:1;line-height:1.25">Add<br>palette</button><button id="openRandom" title="Random palette (R)" style="flex:1;line-height:1.25">Random<br>palette</button></div>
     <button id="openUss" style="width:100%">Satisfactory swatches</button>
-    <label class="filebtn"><input type="file" id="gpl" accept=".gpl,.txt,.hex,.json,text/plain,application/json" multiple>Import palette files…</label>
-    <p class="note" style="margin:0">Load GIMP (.gpl), Paint.NET (.txt) or .hex palettes, or a Universal Swatch Slots .json. You can also drop files anywhere on the page.</p>
-    <div class="row"><input id="search" placeholder="Search name or hex" style="flex:1"></div>
+    <div id="saveWarn" class="savewarn" role="alert" hidden><span>Couldn’t save to this browser’s storage, so your latest changes will be lost when you close or reload. Save a backup file now.</span><button id="expFile2">Save backup file</button></div>
+    <label class="filebtn"><input type="file" id="gpl" accept=".gpl,.txt,.hex,.json,.ase,.png,.gif,.jpg,.jpeg,.webp,.bmp,text/plain,application/json,image/*" multiple>Import palette files…</label>
+    <p class="note" style="margin:0">Opens GIMP .gpl, Paint.NET .txt, .hex, Adobe .ase and PNG palettes, Satisfactory .json files and backups. Other images and screenshots give their 16 main colours. You can also drop or paste files anywhere.</p>
+    <div class="row"><input id="search" placeholder="Search name or hex" title="Search (/) · a full hex also finds palettes with a close colour" style="flex:1"></div>
     <div class="row"><span class="label">Sort</span><select id="sortPal" style="flex:1"><option value="recent">Recently edited</option><option value="name">Name A–Z</option><option value="count">Most colours</option><option value="fewest">Fewest colours</option></select></div>
     <div class="list" id="list"></div>
     <details><summary class="note">Back up or restore</summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
         <textarea id="io" placeholder="Paste a backup here, or press Copy backup"></textarea>
+        <div class="row"><button id="expFile">Save backup file</button><label class="filebtn" style="flex:1"><input type="file" id="impFile" accept=".json,application/json">Open backup file…</label></div>
         <div class="row"><button id="exp">Copy backup</button><button id="imp">Restore from text</button></div>
-        <p class="note">Palettes save in this browser only. Copy a backup to keep them safe or move them to another device.</p>
+        <div id="restAsk"></div>
+        <p class="note">Palettes save in this browser only. Save a backup file to keep them safe or move them to another device.</p>
       </div>
     </details>
   </aside>
@@ -302,8 +337,12 @@ let state;
 try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!state||!Array.isArray(state.palettes))state={palettes:sample(),open:null};
 if(!state.open&&state.palettes[0])state.open=state.palettes[0].id;
-const ui={sortPal:'recent',q:'',view:'swatches',scope:'all',sw:{view:'groups',sort:'manual',size:'m',select:false},exp:{open:false,fmt:'gpl',scope:'whole',group:null},sel:new Set(),ussa:{sort:'order'},gen:{mode:'between',steps:1,ext:2,ramp:7,shift:15,rot:180,chroma:100},rand:{preset:'none',temp:'any',spread:'auto',sat:'auto',mood:'auto',count:16,shift:15,ramps:true,neutral:true,seeds:'',name:'',sortL:true,legible:'off',legAim:'balanced',legHues:false,baseHue:'auto',baseLock:false,baseSeed:null,customHues:['25','145','265'],emissive:true,monoHue:'auto',satC:.12,monoDeg:72,nTint:'auto',nStrength:'auto',seed:Math.floor(Math.random()*1e9)}};
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
+const ui={sortPal:'recent',q:'',view:'swatches',scope:'all',sw:{view:'groups',sort:'manual',size:'m',select:false},exp:{open:false,kind:'file',fmt:'gpl',px:'1',scope:'whole',group:null},sel:new Set(),ussa:{sort:'order'},gen:{mode:'between',steps:1,ext:2,ramp:7,shift:15,rot:180,chroma:100},rand:{preset:'none',temp:'any',spread:'auto',sat:'auto',mood:'auto',count:16,shift:15,ramps:true,neutral:true,seeds:'',name:'',sortL:true,legible:'off',legAim:'balanced',legHues:false,baseHue:'auto',baseLock:false,baseSeed:null,customHues:['25','145','265'],emissive:true,monoHue:'auto',satC:.12,monoDeg:72,nTint:'auto',nStrength:'auto',seed:Math.floor(Math.random()*1e9)}};
+const save=()=>{let ok=true;try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){ok=false}const w=document.getElementById('saveWarn');if(w&&w.hidden!==ok)w.hidden=ok};
+// One-step undo: a copy of the saved state taken just before a destructive change
+const undo={snap:null};
+function snapshot(){undo.snap=JSON.stringify(state)}
+function doUndo(){if(!undo.snap)return false;state=JSON.parse(undo.snap);undo.snap=null;ui.sel.clear();ui.edit=null;ui.ussSel=null;if(ui.view==='uss'&&!(state.uss||[]).length)ui.view='swatches';save();render();toast('Undone');return true}
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function norm(h){h=h.trim().replace(/^#/,'').toLowerCase();if(/^[0-9a-f]{3}$/.test(h))h=h.split('').map(c=>c+c).join('');return /^[0-9a-f]{6}$/.test(h)?'#'+h:null}
@@ -311,13 +350,17 @@ function hsl(h){const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16
 const textOn=h=>hsl(h).l>.55?'#111':'#fff';
 const all=p=>p.groups.flatMap(g=>g.colors);
 const cur=()=>state.palettes.find(p=>p.id===state.open);
-function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1400)}
+function toast(t,{undoable=false}={}){const el=$('toast');
+  if(undoable){el.innerHTML=`<span>${esc(t)}</span><button id="undoBtn" title="Undo (Ctrl+Z)">Undo</button>`;el.classList.add('act')}else{el.textContent=t;el.classList.remove('act')}
+  el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show','act'),undoable?6000:1400)}
 function copy(t){navigator.clipboard.writeText(t).then(()=>toast('Copied '+t),()=>toast(t))}
 function touch(p){p.updated=Date.now();save();render()}
 
 function renderList(){
   let ps=state.palettes.slice();const q=ui.q.toLowerCase().replace('#','');
-  if(q)ps=ps.filter(p=>p.name.toLowerCase().includes(q)||all(p).some(c=>c.includes(q))||p.groups.some(g=>g.name.toLowerCase().includes(q)));
+  // a full hex code also matches palettes holding a close colour (OKLab distance under .06)
+  const qh=/^[0-9a-f]{6}$/.test(q)?'#'+q:null;
+  if(q)ps=ps.filter(p=>p.name.toLowerCase().includes(q)||all(p).some(c=>c.includes(q)||qh&&dist(c,qh)<.06)||p.groups.some(g=>g.name.toLowerCase().includes(q)));
   const s=ui.sortPal;
   ps.sort((a,b)=>s==='name'?a.name.localeCompare(b.name):s==='count'?all(b).length-all(a).length:s==='fewest'?all(a).length-all(b).length:b.updated-a.updated);
   $('list').innerHTML=ps.length?ps.map(p=>`<button class="item ${p.id===state.open?'on':''}" data-open="${p.id}">
@@ -335,7 +378,7 @@ function renderMain(){
   $('main').innerHTML=`
   <div class="row" style="justify-content:space-between">
     <div style="min-width:0"><h2>${esc(p.name)}</h2><p class="note">${all(p).length} colours · ${ui.sw.select?'click swatches to select them':'click a swatch to copy its hex'}</p></div>
-    <div class="row"><button id="rename">Rename</button><button id="copyAll">Copy all hex</button><button id="exportBtn" aria-expanded="${ui.exp.open}">Export</button><button class="danger" id="delPal">Delete palette</button></div>
+    <div class="row"><button id="rename">Rename</button><button id="dupPal" title="Make a copy of this palette">Duplicate</button><button id="copyAll">Copy all hex</button><button id="exportBtn" aria-expanded="${ui.exp.open}" title="Export (E)">Export</button><button class="danger" id="delPal">Delete palette</button></div>
   </div>
   <div id="confirm"></div>
   ${ui.exp.open?exportHTML(p):''}
@@ -343,8 +386,13 @@ function renderMain(){
   ${ui.view==='analysis'?analysisHTML(p):ui.view==='generate'?genHTML(p):swatchesHTML(p)}`;
   if(ui.expEnter){const e=document.querySelector('.exp');if(e)e.classList.add('enter');ui.expEnter=false}
   if(ui.fresh){document.querySelectorAll('.sw').forEach((el,i)=>{if(i<16){el.style.setProperty('--i',i);el.classList.add('enter')}});ui.fresh=false}
-  if(ui.view==='analysis')drawAnalysis(p);
+  if(ui.view==='analysis'){drawAnalysis(p);analysisJump()}
   if(ui.view==='generate')updateGen();
+  if(ui.view==='swatches'&&ui.edit)cedUpdate();
+  if(ui.exp.open)expPreview(p);
+  if(ui.landedG){const ids=ui.landedG;ui.landedG=null;const els=ids.map(id=>document.querySelector(`[data-gsec="${id}"]`)).filter(Boolean);
+    els.forEach(el=>el.classList.add('landed'));if(els[0])els[0].scrollIntoView({block:'nearest'})}
+  if(ui.landedC){const el=document.querySelector(`.sw[data-c="${ui.landedC}"]`);ui.landedC=null;if(el)el.classList.add('landed')}
 }
 
 /* ---------- colour maths ---------- */
@@ -399,7 +447,7 @@ function analysisHTML(p){
 
   <section class="group"><div class="row" style="justify-content:space-between"><h3>Accessibility check</h3><div class="row"><button id="accFixCvd">Save a colour-blind-safe copy</button><button id="accFixProj">Save a colour-blind and projector-ready copy</button></div></div>
     <p class="note">Finds colours that look different to you but merge for colour-blind viewers or on a projector or smart board, which raises black, lowers contrast and fades colour. Each strip shows the palette as that viewer or screen sees it, dark to light. Pairs that already look alike to everyone are listed under Near duplicates instead. The buttons save a corrected copy and leave this palette alone.</p>
-    ${accessHTML(cs)}</section>
+    ${accessHTML(cs,{fix:true})}${accIssues(cs,['p','d','t','proj']).length?'<p class="note">Click a pair to edit one of its colours and separate them.</p>':''}</section>
 
   <section class="group"><h3>Contrast grid</h3>
     <p class="note">Each cell shows the column colour as text on the row colour. AAA is 7:1, AA is 4.5:1, AA lg (large text and UI shapes) is 3:1. Faded cells fall below 3:1.</p>${grid}</section>
@@ -460,6 +508,12 @@ function analysisHTML(p){
   </section>`;
 }
 function setupCv(c,w,h){const r=window.devicePixelRatio||1;c.width=w*r;c.height=h*r;c.style.width=w+'px';const x=c.getContext('2d');x.scale(r,r);return x}
+// Jump list of the analysis sections, built from their headings after each render
+function analysisJump(){const st=document.querySelector('#main .stats');if(!st)return;
+  const hs=[...document.querySelectorAll('#main section.group h3')];if(hs.length<3)return;
+  const nav=document.createElement('nav');nav.className='jump';nav.setAttribute('aria-label','Analysis sections');
+  hs.forEach((h,i)=>{h.id='an-'+i;h.style.scrollMarginTop='12px';const a=document.createElement('a');a.href='#an-'+i;a.dataset.jump='an-'+i;a.textContent=h.textContent;nav.appendChild(a)});
+  st.after(nav)}
 function drawAnalysis(p){
   const cs=scopeColors(p),n=cs.length;if(n<2)return;
   const st=getComputedStyle(document.documentElement),tok=k=>st.getPropertyValue(k).trim();
@@ -757,7 +811,7 @@ function randomHTML(){const o=ui.rand,sp=resolvedSpread(o),pre=presetOf(o.preset
   const styleHue=pre.win?pre.win[0][0]:140;
   return `<div id="randPanel" style="display:flex;flex-direction:column;gap:16px">
   <div class="rhead"><div style="min-width:0;flex:1"><input id="rName" class="titlein" value="${esc(o.name||defName(o))}" aria-label="Palette name" title="Click to rename"><p class="note">Controls left on “Style” follow the chosen style; a dashed ring shows what the style is using. Shuffle for another variation with the same settings.</p></div>
-  <div class="row"><button id="rShuffle">Shuffle</button><button class="primary" id="rSave">Save palette</button>${srcP?`<button id="rAddSrc">Add to “${esc(srcP.name)}”</button>`:''}<button class="ghost" id="rClose">Close</button></div></div>
+  <div class="row"><button id="rShuffle" title="Shuffle (R)">Shuffle</button><button class="primary" id="rSave">Save palette</button>${srcP?`<button id="rAddSrc">Add to “${esc(srcP.name)}”</button>`:''}<button class="ghost" id="rClose">Close</button></div></div>
   <div id="randPeek" class="peek" aria-live="polite"></div>
   ${randSettingsHTML()}
   <div id="randOut" style="display:flex;flex-direction:column;gap:14px"></div></div>`}
@@ -925,37 +979,66 @@ const rgbOf=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16));
 const FMT={
   gpl:(n,gs)=>{const L=['GIMP Palette','#Palette Name: '+n,'#Colors: '+gs.reduce((s,g)=>s+g.colors.length,0)];gs.forEach(g=>{if(gs.length>1)L.push('#Sub-palette: '+g.name);g.colors.forEach(c=>L.push(rgbOf(c).join('\t')+'\t'+c.slice(1)))});return L.join('\r\n')+'\r\n'},
   txt:(n,gs)=>{const L=[';paint.net Palette File',';Palette Name: '+n,';Colors: '+gs.reduce((s,g)=>s+g.colors.length,0)];gs.forEach(g=>{if(gs.length>1)L.push(';Sub-palette: '+g.name);g.colors.forEach(c=>L.push('FF'+c.slice(1)))});return L.join('\r\n')+'\r\n'},
-  hex:(n,gs)=>[...new Set(gs.flatMap(g=>g.colors))].map(c=>c.slice(1)).join('\r\n')+'\r\n'};
+  hex:(n,gs)=>[...new Set(gs.flatMap(g=>g.colors))].map(c=>c.slice(1)).join('\r\n')+'\r\n',
+  css:(n,gs)=>{const cm=t=>t.replace(/\*\//g,'* /'),L=['/* '+cm(n)+' */',':root{'];gs.forEach(g=>{const b=slug(gs.length>1?g.name:n);if(gs.length>1)L.push('  /* '+cm(g.name)+' */');g.colors.forEach((c,i)=>L.push('  --'+b+'-'+(i+1)+': '+c+';'))});L.push('}');return L.join('\n')+'\n'},
+  json:(n,gs)=>JSON.stringify({name:n,groups:gs.map(g=>({name:g.name,colors:g.colors.map(c=>({hex:c,name:cleanName(c)}))}))},null,2)+'\n',
+  list:(n,gs)=>{const L=[n,''];gs.forEach(g=>{if(gs.length>1)L.push(g.name);g.colors.forEach(c=>L.push(cleanName(c)+'\t'+c.toUpperCase()));if(gs.length>1)L.push('')});return L.join('\r\n').trim()+'\r\n'}};
+// Export kinds: each groups the formats shown under it
+const EXPK={file:['Palette file',[['gpl','GIMP .gpl'],['txt','Paint.NET .txt'],['hex','HEX .hex'],['all','All three']]],image:['Image',[['png','Palette strip'],['sheet','Swatch sheet']]],code:['Code',[['css','CSS variables'],['json','JSON']]],text:['Text',[['list','Names and hex']]]};
+const EXT={png:'png',sheet:'png',list:'txt'};
+// PNG exports: a strip of square pixels (for Aseprite, Lospec and game engines) or a labelled sheet (for slides)
+function pngCanvas(f){const cv=document.createElement('canvas'),x=cv.getContext('2d');
+  if(f.fmt==='png'){const cs=[...new Set(f.groups.flatMap(g=>g.colors))],px=+ui.exp.px||1;cv.width=cs.length*px;cv.height=px;cs.forEach((c,i)=>{x.fillStyle=c;x.fillRect(i*px,0,px,px)});return cv}
+  const M=40,CW=150,CH=110,LH=48,GAP=14,cols=Math.max(1,Math.min(8,Math.max(...f.groups.map(g=>g.colors.length)))),W=M*2+cols*CW+(cols-1)*GAP,multi=f.groups.length>1;
+  let H=M+44;f.groups.forEach(g=>{H+=(multi?34:0)+Math.ceil(g.colors.length/cols)*(CH+LH+GAP)});H+=M-GAP;
+  cv.width=W;cv.height=H;x.fillStyle='#ffffff';x.fillRect(0,0,W,H);x.textBaseline='top';x.fillStyle='#111111';x.font='700 26px "Space Mono", monospace';x.fillText(f.title,M,M);
+  let y=M+44;f.groups.forEach(g=>{if(multi){x.fillStyle='#111111';x.font='700 18px "Space Mono", monospace';x.fillText(g.name,M,y);y+=34}
+    g.colors.forEach((c,i)=>{const cx=M+(i%cols)*(CW+GAP),cy=y+Math.floor(i/cols)*(CH+LH+GAP);x.fillStyle=c;x.fillRect(cx,cy,CW,CH);x.strokeStyle='#d0d0d0';x.lineWidth=1;x.strokeRect(cx+.5,cy+.5,CW-1,CH-1);
+      x.fillStyle='#111111';x.font='700 14px "Space Mono", monospace';let nm=cleanName(c);while(nm.length>3&&x.measureText(nm).width>CW)nm=nm.slice(0,-2)+'…';x.fillText(nm,cx,cy+CH+6);
+      x.fillStyle='#555555';x.font='400 14px "Space Mono", monospace';x.fillText(c.toUpperCase(),cx,cy+CH+26)});
+    y+=Math.ceil(g.colors.length/cols)*(CH+LH+GAP)});
+  return cv}
+const pngBytes=f=>new Promise(r=>pngCanvas(f).toBlob(b=>b.arrayBuffer().then(a=>r(new Uint8Array(a))),'image/png'));
+function expPreview(p){const im=$('expImg');if(!im)return;const f=exportFiles(p)[0];if(!f||!f.png)return;const cv=pngCanvas(f);im.src=cv.toDataURL('image/png');
+  if(f.fmt==='png')im.style.width=Math.min(cv.width*Math.max(1,Math.round(16/(+ui.exp.px||1))),2000)+'px'}
+async function exportSave(p){const files=exportFiles(p);if(!files.length)return;for(const f of files)if(f.png)f.bytes=await pngBytes(f);
+  const art=!!window.claude;
+  if(files.length===1&&(!art||files[0].fmt==='txt'||files[0].fmt==='list')){const f=files[0];saveText(f.name,f.bytes?new Blob([f.bytes],{type:'image/png'}):f.text);return}
+  saveText(slug(p.name)+(ui.exp.fmt==='all'?'-all-formats':'-'+ui.exp.fmt)+'.zip',makeZip(files))}
 function exportFiles(p){const x=ui.exp,fmts=x.fmt==='all'?['gpl','txt','hex']:[x.fmt],full=p.groups.filter(g=>g.colors.length);let sets;
   if(x.scope==='each'&&full.length>1)sets=full.map(g=>({base:slug(p.name)+'-'+slug(g.name),name:p.name+' - '+g.name,groups:[g]}));
   else if(x.scope==='one'){const g=full.find(g=>g.id===x.group)||full[0];sets=g?[{base:slug(p.name)+'-'+slug(g.name),name:p.name+' - '+g.name,groups:[g]}]:[]}
   else sets=[{base:slug(p.name),name:p.name,groups:full}];
   const out=[],used=new Set();
-  sets.forEach(s=>fmts.forEach(f=>{let n=s.base+'.'+f,i=2;while(used.has(n))n=s.base+'-'+(i++)+'.'+f;used.add(n);out.push({name:n,fmt:f,count:s.groups.reduce((a,g)=>a+g.colors.length,0),text:FMT[f](s.name,s.groups)})}));
+  sets.forEach(s=>fmts.forEach(f=>{const ext=EXT[f]||f,b=s.base+(f==='sheet'?'-swatches':'');let n=b+'.'+ext,i=2;while(used.has(n))n=b+'-'+(i++)+'.'+ext;used.add(n);const count=s.groups.reduce((a,g)=>a+g.colors.length,0);
+    out.push(f==='png'||f==='sheet'?{name:n,fmt:f,count,png:true,groups:s.groups,title:s.name,text:''}:{name:n,fmt:f,count,text:FMT[f](s.name,s.groups)})}));
   return out}
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
 function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
 function makeZip(files){const enc=new TextEncoder(),parts=[],central=[];let off=0;
-  files.forEach(f=>{const nm=enc.encode(f.name),data=enc.encode(f.text),crc=crc32(data);
+  files.forEach(f=>{const nm=enc.encode(f.name),data=f.bytes||enc.encode(f.text),crc=crc32(data);
     const h=new DataView(new ArrayBuffer(30));[[0,0x04034b50,4],[4,20,2],[6,0x0800,2],[8,0,2],[10,0,2],[12,0x21,2],[14,crc,4],[18,data.length,4],[22,data.length,4],[26,nm.length,2],[28,0,2]].forEach(([o,v,s])=>s===4?h.setUint32(o,v,true):h.setUint16(o,v,true));
     parts.push(new Uint8Array(h.buffer),nm,data);
     const c=new DataView(new ArrayBuffer(46));[[0,0x02014b50,4],[4,20,2],[6,20,2],[8,0x0800,2],[10,0,2],[12,0,2],[14,0x21,2],[16,crc,4],[20,data.length,4],[24,data.length,4],[28,nm.length,2],[30,0,2],[32,0,2],[34,0,2],[36,0,2],[38,0,4],[42,off,4]].forEach(([o,v,s])=>s===4?c.setUint32(o,v,true):c.setUint16(o,v,true));
     central.push(new Uint8Array(c.buffer),nm);off+=30+nm.length+data.length});
   const cd=central.reduce((s,a)=>s+a.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cd,true);e.setUint32(16,off,true);
   return new Blob([...parts,...central,new Uint8Array(e.buffer)])}
-function exportHTML(p){const x=ui.exp,files=exportFiles(p),full=p.groups.filter(g=>g.colors.length);
+function exportHTML(p){const x=ui.exp;if(!EXPK[x.kind])x.kind='file';if(!EXPK[x.kind][1].some(o=>o[0]===x.fmt))x.fmt=EXPK[x.kind][1][0][0];const files=exportFiles(p),full=p.groups.filter(g=>g.colors.length);
   if(!files.length)return '<section class="exp"><p class="empty">Add some colours before exporting.</p></section>';
-  const zip=!(files.length===1&&files[0].fmt==='txt'),big=files.some(f=>f.fmt==='txt'&&f.count>96);
+  const art=!!window.claude,zip=files.length>1||art&&!(files[0].fmt==='txt'||files[0].fmt==='list'),big=files.some(f=>f.fmt==='txt'&&f.count>96),kind=x.kind,fopts=EXPK[kind][1],img=files[0].png;
+  const what={png:' A strip with one square per colour, the palette format Aseprite, Lospec and most game engines read.',sheet:' Named swatches with hex codes on white, to drop into a slide.',css:' Custom properties, numbered within each sub-palette.',json:' Names and hex codes, grouped by sub-palette.',list:' One colour per line with its name, ready to paste into slides or notes.'}[x.fmt]||'';
   return `<section class="exp"><div class="row" style="justify-content:space-between"><h3>Export</h3><button class="ghost" id="expClose">Close</button></div>
-  <div class="cols">${steps('exp.fmt','Format',[['gpl','GIMP .gpl'],['txt','Paint.NET .txt'],['hex','HEX .hex'],['all','All three']],x.fmt)}
+  <div class="cols">${steps('exp.kind','Export as',Object.entries(EXPK).map(([k,v])=>[k,v[0]]),kind)}
+  ${fopts.length>1?steps('exp.fmt','Format',fopts,x.fmt):''}
+  ${x.fmt==='png'?steps('exp.px','Pixel size',[['1','1 px'],['8','8 px'],['32','32 px']],String(x.px)):''}
   ${steps('exp.scope','What to export',[['whole','Whole palette'],['each','Each sub-palette'],['one','One sub-palette']],x.scope,{dis:full.length>1?[]:['each']})}</div>
   ${x.scope==='one'?`<label class="ctl" style="max-width:320px"><span class="label">Sub-palette</span><span></span><select id="expGroup" style="grid-column:1/-1">${full.map(g=>`<option value="${g.id}" ${g.id===x.group?'selected':''}>${esc(g.name)}</option>`).join('')}</select></label>`:''}
-  <p class="note">${files.length} file${files.length>1?'s':''}: ${files.map(f=>esc(f.name)).join(', ')}.
-  ${zip?' Saved as one .zip: this page can only hand over .txt files directly, so GIMP and HEX files travel inside a zip.':''}
-  ${x.scope==='whole'&&full.length>1&&x.fmt!=='hex'?' Sub-palettes are kept as “Sub-palette:” comment lines. Other apps ignore them; Palette Shelf reads them back. HEX files hold colours only.':''}
+  <p class="note">${files.length} file${files.length>1?'s':''}: ${files.map(f=>esc(f.name)).join(', ')}.${what}
+  ${zip?(files.length>1?' Saved together as one .zip.':' Saved as a .zip: this page can only hand over .txt files directly.'):''}
+  ${x.scope==='whole'&&full.length>1&&['gpl','txt','all'].includes(x.fmt)?' Sub-palettes are kept as “Sub-palette:” comment lines. Other apps ignore them; Palette Shelf reads them back. HEX files hold colours only.':''}
   ${big?' Paint.NET only shows the first 96 colours of a palette.':''}</p>
-  <div class="row"><button class="primary" id="expSave">Save ${zip?'.zip':'.txt'}</button><button id="expCopy">Copy text</button></div>
-  <textarea readonly id="expText" aria-label="Export preview">${esc(files.map(f=>(files.length>1?'---- '+f.name+' ----\n':'')+f.text).join('\n'))}</textarea></section>`}
+  <div class="row"><button class="primary" id="expSave">Save ${zip?'.zip':'.'+files[0].name.split('.').pop()}</button>${img?'':'<button id="expCopy">Copy text</button>'}</div>
+  ${img?`<img id="expImg" class="pngprev" alt="Preview of ${esc(files[0].name)}">${files.length>1?'<p class="note">Preview shows the first file.</p>':''}`:`<textarea readonly id="expText" aria-label="Export preview">${esc(files.map(f=>(files.length>1?'---- '+f.name+' ----\n':'')+f.text).join('\n'))}</textarea>`}</section>`}
 /* ---------- accessibility: colour-vision and projector checks ---------- */
 // Projector / smart board model: raised black level, lost contrast and about 30% less saturation (applied in linear light)
 const projSim=memo(c=>{const v=linRgb(c),Y=.2126*v[0]+.7152*v[1]+.0722*v[2];return toHex(v.map(x=>.06+.82*(Y+(x-Y)*.7)))});
@@ -981,11 +1064,11 @@ function accRepair(groups,keys,{keep=new Set(),lo=.02,hi=.99}={}){
     if(!moved)stuck.add(a+b)}
   return accIssues(all(),keys).length}
 function accBoost(groups,lo,hi){groups.forEach(g=>{if(g.neutral)return;g.colors=g.colors.map(c=>{const o=oklch(c);return safe(Math.max(lo,Math.min(hi,o.L)),o.C*1.25,o.H)})})}
-function accessHTML(cs,{compact=false,keys=['p','d','t','proj'],hint=false}={}){cs=[...new Set(cs)];if(cs.length<2)return '';
+function accessHTML(cs,{compact=false,keys=['p','d','t','proj'],hint=false,fix=false}={}){cs=[...new Set(cs)];if(cs.length<2)return '';
   const all=accIssues(cs,keys),by=k=>all.filter(x=>x.k===k),sorted=cs.slice().sort((a,b)=>oklch(a).L-oklch(b).L);
   const cards=keys.map(k=>{const n=by(k).length;return `<div class="acard"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${ACC[k].full}</b><span class="pill ${n?'bad':'ok'}">${n?n+' pair'+(n>1?'s':'')+' merge':'All distinct'}</span></div>
     <div class="strip">${sorted.map(c=>`<span style="background:${ACC[k].f(c)}" title="${c} as seen: ${ACC[k].f(c)}"></span>`).join('')}</div></div>`}).join('');
-  const list=all.slice(0,compact?6:16).map(x=>`<div class="simrow"><span><span class="dot" style="background:${x.a}"></span><span class="dot" style="background:${x.b}"></span>${esc(cleanName(x.a))} / ${esc(cleanName(x.b))}</span><span class="note">${x.k==='proj'?'look alike on a projector':'look alike for '+ACC[x.k].name.toLowerCase()+' viewers'}</span><span><span class="dot" style="background:${ACC[x.k].f(x.a)}"></span><span class="dot" style="background:${ACC[x.k].f(x.b)}"></span></span></div>`).join('');
+  const list=all.slice(0,compact?6:16).map(x=>`<div class="simrow">${fix?`<button class="pairbtn" data-fixpair="${x.a}|${x.b}" title="Edit one of these colours to separate them">`:'<span>'}<span class="dot" style="background:${x.a}"></span><span class="dot" style="background:${x.b}"></span>${esc(cleanName(x.a))} / ${esc(cleanName(x.b))}${fix?'</button>':'</span>'}<span class="note">${x.k==='proj'?'look alike on a projector':'look alike for '+ACC[x.k].name.toLowerCase()+' viewers'}</span><span><span class="dot" style="background:${ACC[x.k].f(x.a)}"></span><span class="dot" style="background:${ACC[x.k].f(x.b)}"></span></span></div>`).join('');
   const tip=hint&&all.length?`<p class="warnline" style="border-color:var(--line);color:var(--fg)">${cs.length} colours is more than can all stay distinct here. Colour-blind vision${keys.includes('proj')?' and projectors':''} leave room for fewer clearly different colours; about ${keys.includes('proj')?'12':'16–20'} usually works. Try fewer colours, or turn off Build as ramps.</p>`:'';
   return `${tip}<div class="acards">${cards}</div>${all.length?`<div class="dups">${list}</div>${all.length>(compact?6:16)?`<p class="note">…and ${all.length-(compact?6:16)} more.</p>`:''}`:''}`}
 /* ---------- swatches view ---------- */
@@ -994,10 +1077,10 @@ function families(cs){const order=[...RANGES.filter(r=>r[1]!=null).map(r=>r[0]),
   cs.forEach(c=>{const f=famOf(c);(m[f]=m[f]||[]).push(c)});
   return order.filter(f=>m[f]).map(f=>({name:f,cs:m[f],rep:m[f].reduce((a,b)=>oklch(b).C>oklch(a).C?b:a)}))}
 const swSort=cs=>ui.sw.sort==='hue'?cs.slice().sort((a,b)=>{const x=oklch(a),y=oklch(b);return(x.C<.035)-(y.C<.035)||x.H-y.H||x.L-y.L}):sortColors(cs,ui.sw.sort);
-function swatch(c,{gid=null,tag=''}={}){const o=oklch(c),on=ui.sel.has(c),sel=ui.sw.select;
-  return `<div class="sw${on?' picked':''}"><button class="chip" title="${esc(colorName(c))} · ${c.toUpperCase()}" style="background:${c};--ink:${textOn(c)}" ${sel?`data-pick="${c}" aria-pressed="${on}"`:`data-copy="${c}"`} aria-label="${sel?(on?'Deselect ':'Select '):'Copy '}${c}"></button>
+function swatch(c,{gid=null,tag=''}={}){const o=oklch(c),on=ui.sel.has(c),sel=ui.sw.select,drag=gid&&!sel&&ui.sw.sort==='manual';
+  return `<div class="sw${on?' picked':''}" data-c="${c}"${gid?` data-g="${gid}"`:''}${drag?' draggable="true" title="Drag to reorder or move to another sub-palette (Alt+arrow keys on the swatch)"':''}><button class="chip" title="${esc(colorName(c))} · ${c.toUpperCase()}" style="background:${c};--ink:${textOn(c)}" ${sel?`data-pick="${c}" aria-pressed="${on}"`:`data-copy="${c}"`} aria-label="${sel?(on?'Deselect ':'Select '):'Copy '}${c}"></button>
   <div class="info"><span class="nm" title="Closest named colour${colorName(c).startsWith('≈')?' (approximate)':''}">${esc(colorName(c))}</span><span class="hx">${c.toUpperCase()}</span><span class="lv" title="Value is perceived lightness, 0 black to 100 white. Chroma is saturation.">Value ${Math.round(o.L*100)}</span><span class="lv">Chroma ${Math.round(o.C*100)}</span></div>${tag?`<div class="tag" title="${esc(tag)}">${esc(tag)}</div>`:''}
-  ${gid&&!sel?`<button class="x" data-rm="${gid}|${c}" aria-label="Remove ${c}" style="color:${textOn(c)};background:transparent;border-color:transparent">✕</button>`:''}</div>`}
+  ${gid&&!sel?`<div class="tools" style="--ink:${textOn(c)}"><button data-edit="${gid}|${c}" aria-label="Edit ${c}" title="Edit colour">✎</button><button data-rm="${gid}|${c}" aria-label="Remove ${c}" title="Remove (undo with Ctrl+Z)">✕</button></div>`:''}</div>`}
 function swatchesHTML(p){const v=ui.sw,uniq=[...new Set(all(p))],where=c=>p.groups.filter(g=>g.colors.includes(c)).map(g=>g.name).join(', ');
   const fams=families(uniq),grid=list=>`<div class="grid ${v.size}">${list}</div>`;
   const selAll=cs=>v.select?`<button class="ghost" data-selall="${cs.join(',')}">${cs.every(c=>ui.sel.has(c))?'Deselect all':'Select all'}</button>`:'';
@@ -1016,11 +1099,13 @@ function swatchesHTML(p){const v=ui.sw,uniq=[...new Set(all(p))],where=c=>p.grou
     <span class="row" style="gap:6px"><select id="selTarget" aria-label="Sub-palette to move into">${opts}</select><button id="selMoveTo" ${ui.sel.size&&p.groups.length?'':'disabled'}>Move to</button></span>
     <button class="ghost" id="selClear" ${ui.sel.size?'':'disabled'}>Clear</button></div>`:'';
   let body='';
-  if(v.view==='groups')body=p.groups.map(g=>{const cs=swSort(g.colors);return `<section class="group">
+  const eye='EyeDropper' in window;
+  if(v.view==='groups')body=p.groups.map(g=>{const cs=swSort(g.colors);return `<section class="group" data-gsec="${g.id}">
     <div class="row" style="justify-content:space-between"><div class="row"><h3>${esc(g.name)}</h3><span class="label">${g.colors.length}</span><span class="strip mini">${cs.map(c=>`<span style="background:${c}"></span>`).join('')}</span></div>
-      <div class="row">${selAll(g.colors)}${v.sort!=='manual'&&g.colors.length>1?`<button class="ghost" data-apply="${g.id}" title="Save the sorted order into this sub-palette">Keep this order</button>`:''}<button class="ghost" data-rg="${g.id}">Rename</button><button class="ghost danger" data-dg="${g.id}">Remove</button></div></div>
-    ${cs.length?grid(cs.map(c=>swatch(c,{gid:g.id})).join('')):'<p class="empty">No colours yet.</p>'}
-    <div class="row"><input type="color" id="pick-${g.id}" value="#4b3fd1" aria-label="Pick colour"><input id="hex-${g.id}" placeholder="#aabbcc, #123 …" style="flex:1;max-width:320px"><button data-add="${g.id}">Add colours</button></div></section>`}).join('')
+      <div class="row">${selAll(g.colors)}${v.sort!=='manual'&&g.colors.length>1?`<button class="ghost" data-apply="${g.id}" title="Save the sorted order into this sub-palette">Keep this order</button>`:''}<button class="ghost" data-rg="${g.id}">Rename</button><button class="ghost" data-dupg="${g.id}">Duplicate</button><button class="ghost danger" data-dg="${g.id}">Remove</button></div></div>
+    ${cs.length?grid(cs.map(c=>swatch(c,{gid:g.id})).join('')):'<p class="empty">No colours yet. Add some below, or drag swatches here from another sub-palette.</p>'}
+    ${ui.edit&&ui.edit.gid===g.id&&g.colors.includes(ui.edit.c)?cedHTML(p,g,ui.edit.c):''}
+    <div class="row"><input type="color" id="pick-${g.id}" value="#4b3fd1" aria-label="Pick colour">${eye?`<button class="ghost" data-eye="${g.id}" title="Pick a colour from anywhere on the screen" aria-label="Pick a colour from the screen">💧</button>`:''}<input id="hex-${g.id}" placeholder="#aabbcc, #123 …" style="flex:1;max-width:320px"><button data-add="${g.id}">Add colours</button></div></section>`}).join('')
     +`<div class="row group"><input id="newGroup" placeholder="New sub-palette name" style="flex:1;max-width:320px"><button id="addGroup">Add sub-palette</button></div>`;
   else if(v.view==='family')body=fams.map(f=>{const cs=v.sort==='manual'?f.cs:swSort(f.cs);return `<section class="group">
     <div class="row" style="justify-content:space-between"><div class="row"><span class="dot" style="background:${f.rep}"></span><h3>${f.name}</h3><span class="label">${f.cs.length}</span></div>
@@ -1029,6 +1114,66 @@ function swatchesHTML(p){const v=ui.sw,uniq=[...new Set(all(p))],where=c=>p.grou
   else body=`<section class="group">${grid(swSort(uniq).map(c=>swatch(c,{tag:where(c)})).join(''))}</section>`;
   return bar+breakdown+selbar+(uniq.length||v.view==='groups'?body:'<p class="empty">No colours yet. Switch to Sub-palettes to add some.</p>');
 }
+/* ---------- colour editor (edits one colour in place) ---------- */
+function cedOpen(gid,c,other=null){const o=oklch(c);ui.edit={gid,c,v:c,L:+(o.L*100).toFixed(1),C:+(o.C*100).toFixed(1),H:Math.round(o.H||0),other,everywhere:true}}
+function cedHTML(p,g,c){const e=ui.edit,elsewhere=p.groups.filter(x=>x!==g&&x.colors.includes(c)).length,eye='EyeDropper' in window;
+  const rng=(id,label,min,max,step,val)=>`<label class="ctl"><span class="label">${label}</span><output id="${id}o">${val}</output><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}" style="grid-column:1/-1"></label>`;
+  return `<div class="ced" id="ced" role="group" aria-label="Edit colour ${c}">
+    <div class="cprev"><span class="label">Before · after</span><div class="cpair"><span style="background:${c};color:${textOn(c)}">${c.toUpperCase()}</span><span id="cedNew"></span></div>
+      <span class="note" id="cedName"></span><span class="note" id="cedCon"></span></div>
+    <div class="cfields">
+      <div class="row"><input type="color" id="cedPick" value="${e.v}" aria-label="Pick colour">${eye?`<button class="ghost" id="cedEye" title="Pick from the screen" aria-label="Pick a colour from the screen">💧</button>`:''}<input id="cedHex" class="hexin" value="${e.v.toUpperCase()}" aria-label="Hex code"></div>
+      ${rng('cedL','Lightness',0,100,.5,e.L)}${rng('cedC','Chroma',0,37,.5,e.C)}${rng('cedH','Hue',0,359,1,e.H)}
+      ${e.other?`<div class="row"><button id="cedApart">Separate from ${esc(cleanName(e.other))}</button><span class="dot" style="background:${e.other}"></span><span class="note">Moves lightness until the two stay apart for colour-blind viewers and on projectors.</span></div>`:''}
+      ${elsewhere?tog('cedAll',`Also change it in ${elsewhere} other sub-palette${elsewhere>1?'s':''}`,e.everywhere):''}
+      <div class="row"><button class="primary" id="cedSave">Save colour</button><button id="cedCancel">Cancel</button></div></div></div>`}
+function cedUpdate(skip){const e=ui.edit,el=$('cedNew');if(!e||!el)return;const p=cur(),v=e.v;
+  el.style.background=v;el.style.color=textOn(v);el.textContent=v.toUpperCase();
+  $('cedName').textContent=colorName(v);
+  const others=[...new Set(p?all(p):[])].filter(x=>x!==e.c),byL=others.slice().sort((a,b)=>oklch(a).L-oklch(b).L),dk=byL[0],lt=byL[byL.length-1];
+  $('cedCon').textContent=others.length?[dk,lt].filter((x,i,a)=>x&&a.indexOf(x)===i).map(x=>ratio(v,x).toFixed(1)+':1 on '+cleanName(x)).join(' · '):'';
+  if(skip!=='pick')$('cedPick').value=v;if(skip!=='hex')$('cedHex').value=v.toUpperCase();
+  if(skip!=='lch'){[['cedL',e.L],['cedC',e.C],['cedH',e.H]].forEach(([id,x])=>{$(id).value=x;$(id+'o').textContent=x})}}
+function cedSet(v,from){const e=ui.edit;if(!e||!v)return;e.v=v;if(from!=='lch'){const o=oklch(v);e.L=+(o.L*100).toFixed(1);e.C=+(o.C*100).toFixed(1);e.H=Math.round(o.H||0)}cedUpdate(from)}
+function cedApart(){const e=ui.edit;if(!e||!e.other)return;const keys=['p','d','t','proj'],o=oklch(e.v),ol=oklch(e.other).L;
+  for(const dir of o.L>=ol?[1,-1]:[-1,1])for(let s=1;s<=40;s++){const L=o.L+dir*s*.015;if(L<.02||L>.99)break;const c=safe(L,o.C,o.H);
+    if(!accIssues([c,e.other],keys).length){cedSet(c);toast('Separated');return}}
+  toast('Could not separate these by lightness alone; try changing the hue')}
+function cedSave(){const e=ui.edit,p=cur();if(!e||!p)return;const g=p.groups.find(x=>x.id===e.gid);if(!g)return;
+  if(e.v===e.c){ui.edit=null;renderMain();return}
+  const targets=e.everywhere?p.groups.filter(x=>x.colors.includes(e.c)):[g];
+  // if the new colour is already in a sub-palette, the two merge into one
+  const merged=targets.filter(x=>x.colors.includes(e.v));
+  snapshot();targets.forEach(x=>{if(x.colors.includes(e.v))x.colors=x.colors.filter(c=>c!==e.c);else x.colors=x.colors.map(c=>c===e.c?e.v:c)});
+  ui.landedC=e.v;ui.edit=null;touch(p);toast(merged.length?e.v.toUpperCase()+' was already in '+merged[0].name+', so the two merged':'Changed '+e.c.toUpperCase()+' to '+e.v.toUpperCase(),{undoable:true})}
+/* ---------- moving colours: drag and drop, Alt+arrow keys ---------- */
+let swDrag=null;
+function moveColor(p,c,fromId,toId,beforeC,anim=true){const from=p.groups.find(g=>g.id===fromId),to=p.groups.find(g=>g.id===toId);if(!from||!to)return false;
+  if(from===to&&beforeC===c)return false;snapshot();
+  from.colors=from.colors.filter(x=>x!==c);
+  if(to!==from&&to.colors.includes(c)){touch(p);toast(c.toUpperCase()+' was already in '+to.name,{undoable:true});return true}
+  const i=beforeC==null?-1:to.colors.indexOf(beforeC);if(i<0)to.colors.push(c);else to.colors.splice(i,0,c);
+  if(anim)ui.landedC=c;touch(p);if(from!==to)toast('Moved '+c.toUpperCase()+' to '+to.name,{undoable:true});return true}
+document.addEventListener('dragstart',e=>{if(ui.view!=='swatches')return;const sw=e.target.closest&&e.target.closest('.sw[draggable=true]');if(!sw)return;
+  swDrag={c:sw.dataset.c,g:sw.dataset.g};e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',sw.dataset.c);sw.classList.add('dragging')});
+document.addEventListener('dragend',()=>{if(!swDrag)return;swDrag=null;document.querySelectorAll('.sw.dragging,.sw.dropL,.sw.dropR,.group.over').forEach(el=>el.classList.remove('dragging','dropL','dropR','over'))});
+document.addEventListener('dragover',e=>{if(!swDrag)return;e.preventDefault();document.querySelectorAll('.sw.dropL,.sw.dropR,.group.over').forEach(el=>el.classList.remove('dropL','dropR','over'));
+  const sw=e.target.closest('.sw[data-g]');if(sw){const r=sw.getBoundingClientRect();sw.classList.add(e.clientX<r.left+r.width/2?'dropL':'dropR');return}
+  const sec=e.target.closest('[data-gsec]');if(sec)sec.classList.add('over')});
+document.addEventListener('drop',e=>{if(!swDrag)return;e.preventDefault();e.stopImmediatePropagation();const d=swDrag;swDrag=null;const p=cur();
+  document.querySelectorAll('.sw.dropL,.sw.dropR,.group.over').forEach(el=>el.classList.remove('dropL','dropR','over'));if(!p)return;
+  const sw=e.target.closest('.sw[data-g]'),sec=e.target.closest('[data-gsec]');if(!sec)return;const to=sec.dataset.gsec;
+  if(sw){if(sw.dataset.c===d.c&&sw.dataset.g===d.g)return;const r=sw.getBoundingClientRect(),after=e.clientX>=r.left+r.width/2,tg=p.groups.find(g=>g.id===to);
+    const list=tg.colors.filter(x=>x!==d.c),i=list.indexOf(sw.dataset.c)+(after?1:0);moveColor(p,d.c,d.g,to,list[i]??null)}
+  else moveColor(p,d.c,d.g,to,null)},true);
+document.addEventListener('keydown',e=>{if(ui.view!=='swatches'||!e.altKey||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
+  const sw=e.target.closest&&e.target.closest('.sw[draggable=true]');if(!sw)return;e.preventDefault();const p=cur(),c=sw.dataset.c,gi=p.groups.findIndex(g=>g.id===sw.dataset.g),g=p.groups[gi],i=g.colors.indexOf(c);
+  let ok=false;
+  if(e.key==='ArrowLeft'&&i>0)ok=moveColor(p,c,g.id,g.id,g.colors[i-1],false);
+  else if(e.key==='ArrowRight'&&i<g.colors.length-1)ok=moveColor(p,c,g.id,g.id,g.colors[i+2]??null,false);
+  else if(e.key==='ArrowUp'&&gi>0)ok=moveColor(p,c,g.id,p.groups[gi-1].id,null,false);
+  else if(e.key==='ArrowDown'&&gi<p.groups.length-1)ok=moveColor(p,c,g.id,p.groups[gi+1].id,null,false);
+  if(ok){const b=document.querySelector(`.sw[data-c="${c}"] .chip`);if(b)b.focus()}});
 /* ---------- Satisfactory: Universal Swatch Slots builder ---------- */
 const USS_SAFE=226,USS_MAX=226;
 function ussNew(name){return{id:uid(),name:name||'My swatches',file:'MySwatches',active:true,addP:true,addS:true,remP:false,remS:false,groups:[],
@@ -1246,20 +1391,20 @@ document.addEventListener('click',e=>{if(ui.view!=='uss')return;const t=e.target
   if(id==='ussNewSet'){const nb=ussNew('Swatch set '+(state.uss.length+1));nb.gen={...b.gen};state.uss.push(nb);state.ussOpen=nb.id;ui.ussTab='gen';ui.ussSel=null;ussCommit(nb);const n=$('ussName');if(n){n.focus();n.select()}return}
   if(id==='ussDelSet'){ui.ussDelSet=b.id;renderMain();return}
   if(id==='ussDelNo'){ui.ussDelSet=null;renderMain();return}
-  if(id==='ussDelYes'){state.uss=state.uss.filter(x=>x!==b);state.ussOpen=state.uss[0]?.id||null;ui.ussDelSet=null;ui.ussSel=null;ussCommit(b);return}
+  if(id==='ussDelYes'){snapshot();toast('Deleted '+b.name,{undoable:true});state.uss=state.uss.filter(x=>x!==b);state.ussOpen=state.uss[0]?.id||null;ui.ussDelSet=null;ui.ussSel=null;ussCommit(b);return}
   if(id==='ussGo'||id==='ussShuffle'||id==='ussAppend'){if(id==='ussShuffle')ui.rand.seed=Math.floor(Math.random()*1e9);
     if(b.gen.source==='pal'&&!state.palettes.some(p=>p.id===b.gen.pal)){toast('Choose a palette first');return}
-    const n=ussGenerate(b,id==='ussAppend');if(!n){toast('The source has no colours to work from');return}ui.ussTab='arrange';ussCommit(b);toast((id==='ussAppend'?'Added ':'Generated ')+n+' swatches');return}
+    const had=ussAll(b).length;snapshot();const n=ussGenerate(b,id==='ussAppend');if(!n){undo.snap=null;toast('The source has no colours to work from');return}ui.ussTab='arrange';ussCommit(b);toast((id==='ussAppend'?'Added ':'Generated ')+n+' swatches',{undoable:had>0});return}
   if(id==='ussAddGroup'){b.groups.push({id:uid(),name:'Group '+(b.groups.length+1),swatches:[]});ussCommit(b);return}
   if(id==='ussRenameAll'){b.groups.forEach(g=>g.swatches.forEach((s,i)=>s.name=ussName(s,g.name,i,b.gen.naming)));ussCommit(b);toast('Renamed all swatches');return}
   if(d.usort){const g=b.groups.find(x=>x.id===d.usort);g.swatches.sort((x,y)=>oklch(x.p).L-oklch(y.p).L);ussCommit(b);return}
   if(d.uaddsw){const g=b.groups.find(x=>x.id===d.uaddsw),last=g.swatches[g.swatches.length-1],s={id:uid(),p:last?last.p:'#808080',s:last?last.s:'#404040',m:'Default'};s.name=ussName(s,g.name,g.swatches.length,b.gen.naming);g.swatches.push(s);ui.ussSel=s.id;ussCommit(b);return}
   if(d.udelg){ui.ussDelG=d.udelg;renderMain();return}
   if(d.udelgn){ui.ussDelG=null;renderMain();return}
-  if(d.udelgy){b.groups=b.groups.filter(x=>x.id!==d.udelgy);ui.ussDelG=null;ussCommit(b);return}
+  if(d.udelgy){snapshot();b.groups=b.groups.filter(x=>x.id!==d.udelgy);ui.ussDelG=null;ussCommit(b);toast('Group removed',{undoable:true});return}
   if(d.uswap){const f=ussFind(b,d.uswap);[f.s.p,f.s.s]=[f.s.s,f.s.p];ussCommit(b);return}
   if(d.udup){const f=ussFind(b,d.udup),c={...f.s,id:uid()};f.g.swatches.splice(f.si+1,0,c);ui.ussSel=c.id;ussCommit(b);return}
-  if(d.udel){const f=ussFind(b,d.udel);f.g.swatches.splice(f.si,1);ui.ussSel=null;ussCommit(b);return}
+  if(d.udel){const f=ussFind(b,d.udel);snapshot();f.g.swatches.splice(f.si,1);ui.ussSel=null;ussCommit(b);toast('Removed '+f.s.name,{undoable:true});return}
   if(d.udone){ui.ussSel=null;renderMain();return}
   if(d.ugo){ui.ussSel=d.ugo;ui.ussTab='arrange';renderMain();const el=document.querySelector(`[data-usw="${d.ugo}"]`);if(el)el.scrollIntoView({block:'center'});return}
   if(id==='ussToPal'){let p=state.palettes.find(x=>x.id===b.linkPal);if(!p){p={id:uid(),name:b.name+' (swatches)'};state.palettes.push(p);b.linkPal=p.id}
@@ -1333,13 +1478,17 @@ function paint(id,w,h,scale,f,near){const c=$(id);if(!c)return;c.width=w;c.heigh
 function render(){renderList();renderMain()}
 
 document.addEventListener('click',e=>{
+  const jl=e.target.closest('a[data-jump]');if(jl){e.preventDefault();const h=$(jl.dataset.jump);if(h)h.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});return}
   const t=e.target.closest('button');if(!t)return;const p=cur();
-  if(t.dataset.open){state.open=t.dataset.open;ui.sel.clear();if(ui.view==='random'||ui.view==='uss')ui.view='swatches';save();render();return}
+  if(t.id==='undoBtn'){$('toast').classList.remove('show','act');doUndo();return}
+  if(t.dataset.open){state.open=t.dataset.open;ui.sel.clear();ui.edit=null;if(ui.view==='random'||ui.view==='uss')ui.view='swatches';save();render();revealMain();return}
+  if(t.id==='expFile'||t.id==='expFile2'){saveText('palette-shelf-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'palette-shelf',version:1,palettes:state.palettes,uss:state.uss||[]},null,1));return}
+  if(t.dataset.rest){const d=ui.pendingRestore;ui.pendingRestore=null;$('restAsk').innerHTML='';if(!d||t.dataset.rest==='no')return;restoreBackup(d,t.dataset.rest==='replace');return}
   if(t.id==='openUss'){ui.view='uss';ui.ussTab=null;ui.ussSel=null;renderMain();revealMain();return}
   if(t.id==='openRandom'){ui.view='random';ui.rand.name='';renderMain();const n=$('rName');if(n){n.focus({preventScroll:true});n.select()}revealMain();return}
   if(t.id==='rClose'){ui.view='swatches';renderMain();return}
   if(t.id==='rShuffle'){ui.rand.seed=Math.floor(Math.random()*1e9);ui.rand.name='';renderMain();return}
-  if(t.id==='rAddSrc'){const sp=state.palettes.find(x=>x.id===presetOf(ui.rand.preset).fromPalette);if(!sp)return;lastRand.forEach(g=>sp.groups.push({id:uid(),name:g.name+' (generated)',colors:g.colors.slice()}));state.open=sp.id;ui.view='swatches';ui.rand.seed=Math.floor(Math.random()*1e9);touch(sp);toast('Added '+lastRand.length+' sub-palettes to '+sp.name);return}
+  if(t.id==='rAddSrc'){const sp=state.palettes.find(x=>x.id===presetOf(ui.rand.preset).fromPalette);if(!sp)return;const ng=lastRand.map(g=>({id:uid(),name:g.name+' (generated)',colors:g.colors.slice()}));sp.groups.push(...ng);ui.landedG=ng.map(g=>g.id);state.open=sp.id;ui.view='swatches';ui.sw.view='groups';ui.rand.seed=Math.floor(Math.random()*1e9);touch(sp);toast('Added '+lastRand.length+' sub-palettes to '+sp.name);return}
   if(t.id==='genToRand'&&p){ui.rand.preset='pal:'+p.id;ui.rand.srcGroups=ui.scope==='all'||!p.groups.some(g=>g.id===ui.scope)?null:[ui.scope];ui.rand.spread='auto';ui.rand.nTint='auto';ui.rand.neutral=true;ui.view='random';renderMain();return}
   if(t.id==='rSave'){readRand();const np={id:uid(),name:$('rName').value.trim()||defName(ui.rand),updated:Date.now(),groups:lastRand.map(g=>({id:uid(),name:g.name,colors:g.colors.slice()}))};state.palettes.push(np);state.open=np.id;ui.view='swatches';ui.fresh=true;ui.rand.name='';ui.rand.seed=Math.floor(Math.random()*1e9);save();render();toast('Saved '+np.name);return}
   const stp=t.closest('[data-step]');if(stp&&t.dataset.v!=null){if(t.disabled)return;const k=stp.dataset.step;if(k.includes('.')){const[a,b]=k.split('.');ui[a][b]=t.dataset.v;if(a==='ussg')save()}else ui.rand[k]=t.dataset.v;if(k==='monoHue'&&t.dataset.v!=='custom'&&t.dataset.v!=='auto')ui.rand.monoDeg=+t.dataset.v;renderMain();const nb=document.querySelector(`[data-step="${k}"] .st.on`);if(nb)nb.focus();return}
@@ -1353,49 +1502,146 @@ document.addEventListener('click',e=>{
   if(t.id==='exportBtn'){ui.exp.open=!ui.exp.open;ui.expEnter=ui.exp.open;renderMain();return}
   if(t.id==='expClose'){ui.exp.open=false;renderMain();return}
   if(t.id==='expCopy'){const ta=$('expText');navigator.clipboard.writeText(ta.value).then(()=>toast('Copied'),()=>{ta.focus();ta.select();toast('Select all and copy')});return}
-  if(t.id==='expSave'&&p){const files=exportFiles(p);if(!files.length)return;(async()=>{let d=null;try{d=window.claude&&await window.claude.use('downloads')}catch(e){}
-    if(!d){const single=files.length===1&&files[0].fmt==='txt';if(window.parent===window){const blob=single?new Blob([files[0].text],{type:'text/plain'}):makeZip(files),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=single?files[0].name:slug(p.name)+(ui.exp.fmt==='all'?'-all-formats':'-'+ui.exp.fmt)+'.zip';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Saved');return}toast('Saving files is not available here. Use Copy text instead.');return}
-    const single=files.length===1&&files[0].fmt==='txt';
-    try{await d.save(single?{filename:files[0].name,data:files[0].text}:{filename:slug(p.name)+(ui.exp.fmt==='all'?'-all-formats':'-'+ui.exp.fmt)+'.zip',data:makeZip(files)});toast('Saved')}
-    catch(err){toast(err&&err.code==='declined'?'Save cancelled':'Could not save: '+((err&&err.message)||'not available'))}})();return}
+  if(t.id==='expSave'&&p){exportSave(p);return}
   if(t.dataset.pick){const c=t.dataset.pick;ui.sel.has(c)?ui.sel.delete(c):ui.sel.add(c);renderMain();return}
   if(t.dataset.selall){const cs=t.dataset.selall.split(',');if(cs.every(c=>ui.sel.has(c)))cs.forEach(c=>ui.sel.delete(c));else cs.forEach(c=>ui.sel.add(c));renderMain();return}
   if(t.id==='selClear'){ui.sel.clear();renderMain();return}
   if(t.dataset.famnew&&p){const fs=families([...new Set(all(p))]).find(f=>f.name===t.dataset.famnew);if(fs){p.groups.push({id:uid(),name:fs.name,colors:sortColors(fs.cs,'light')});touch(p);toast('Made sub-palette '+fs.name)}return}
-  if(t.dataset.selnew&&p&&ui.sel.size){const cs=[...ui.sel],name=$('selName').value.trim()||'Selection';if(t.dataset.selnew==='move')p.groups.forEach(g=>g.colors=g.colors.filter(c=>!ui.sel.has(c)));p.groups.push({id:uid(),name,colors:cs});ui.sel.clear();touch(p);toast((t.dataset.selnew==='move'?'Moved ':'Copied ')+cs.length+' colours into '+name);return}
-  if(t.id==='selMoveTo'&&p&&ui.sel.size){const g=p.groups.find(g=>g.id===$('selTarget').value);if(!g)return;const cs=[...ui.sel];p.groups.forEach(x=>{if(x!==g)x.colors=x.colors.filter(c=>!ui.sel.has(c))});cs.forEach(c=>{if(!g.colors.includes(c))g.colors.push(c)});ui.sel.clear();touch(p);toast('Moved '+cs.length+' colours to '+g.name);return}
+  if(t.dataset.selnew&&p&&ui.sel.size){const cs=[...ui.sel],name=$('selName').value.trim()||'Selection';snapshot();if(t.dataset.selnew==='move')p.groups.forEach(g=>g.colors=g.colors.filter(c=>!ui.sel.has(c)));p.groups.push({id:uid(),name,colors:cs});ui.sel.clear();touch(p);toast((t.dataset.selnew==='move'?'Moved ':'Copied ')+cs.length+' colours into '+name,{undoable:true});return}
+  if(t.id==='selMoveTo'&&p&&ui.sel.size){const g=p.groups.find(g=>g.id===$('selTarget').value);if(!g)return;const cs=[...ui.sel];snapshot();p.groups.forEach(x=>{if(x!==g)x.colors=x.colors.filter(c=>!ui.sel.has(c))});cs.forEach(c=>{if(!g.colors.includes(c))g.colors.push(c)});ui.sel.clear();touch(p);toast('Moved '+cs.length+' colours to '+g.name,{undoable:true});return}
   if(t.id==='genNew'&&p){const np={id:uid(),name:p.name+' · '+GEN[ui.gen.mode][0],updated:Date.now(),groups:lastGen.map(g=>({id:uid(),name:g.name,colors:g.colors.slice()}))};state.palettes.push(np);state.open=np.id;ui.view='swatches';ui.fresh=true;ui.scope='all';save();render();toast('Saved as a new palette');return}
-  if(t.id==='genAdd'&&p){const tag=GEN[ui.gen.mode][0].toLowerCase();lastGen.forEach(g=>p.groups.push({id:uid(),name:g.name+' ('+tag+')',colors:g.colors.slice()}));ui.view='swatches';touch(p);toast('Added '+lastGen.length+' sub-palette'+(lastGen.length>1?'s':''));return}
+  if(t.id==='genAdd'&&p){const tag=GEN[ui.gen.mode][0].toLowerCase(),ng=lastGen.map(g=>({id:uid(),name:g.name+' ('+tag+')',colors:g.colors.slice()}));p.groups.push(...ng);ui.landedG=ng.map(g=>g.id);ui.view='swatches';ui.sw.view='groups';touch(p);toast('Added '+lastGen.length+' sub-palette'+(lastGen.length>1?'s':''));return}
   if(t.id==='addPal'){ui.view='swatches';const np={id:uid(),name:'Untitled palette',updated:Date.now(),groups:[{id:uid(),name:'Main',colors:[]}]};state.palettes.push(np);state.open=np.id;ui.sel.clear();save();render();inlineRename(np.name,v=>{np.name=v;touch(np)});revealMain();return}
   if(t.id==='exp'){const s=JSON.stringify({palettes:state.palettes,uss:state.uss||[]});$('io').value=s;navigator.clipboard.writeText(s).then(()=>toast('Backup copied'),()=>{$('io').select();toast('Select and copy the text')});return}
-  if(t.id==='imp'){try{let d=JSON.parse($('io').value);if(d&&!Array.isArray(d)&&Array.isArray(d.palettes)){(d.uss||[]).forEach(x=>{x.id=uid();(state.uss=state.uss||[]).push(x)});d=d.palettes}if(!Array.isArray(d))throw 0;d.forEach(x=>{x.id=uid();x.groups.forEach(g=>g.id=uid());state.palettes.push(x)});save();render();toast(`Restored ${d.length} palettes`)}catch(err){toast('That text is not a Palette Shelf backup')}return}
+  if(t.id==='imp'){const d=readBackup($('io').value);if(!d){toast('That text is not a Palette Shelf backup');return}askRestore(d);return}
   if(!p)return;
-  if(t.dataset.add){const g=p.groups.find(g=>g.id===t.dataset.add);const raw=$('hex-'+g.id).value;const cs=raw.trim()?raw.split(/[\s,;]+/).map(norm).filter(Boolean):[norm($('pick-'+g.id).value)];if(!cs.length){toast('Enter hex codes like #ff8800');return}cs.forEach(c=>{if(!g.colors.includes(c))g.colors.push(c)});touch(p);return}
-  if(t.dataset.rm){const[gid,c]=t.dataset.rm.split('|');const g=p.groups.find(g=>g.id===gid);g.colors=g.colors.filter(x=>x!==c);touch(p);return}
-  if(t.dataset.apply){const g=p.groups.find(g=>g.id===t.dataset.apply);g.colors=swSort(g.colors);touch(p);toast('Order saved');return}
-  if(t.dataset.dg){p.groups=p.groups.filter(g=>g.id!==t.dataset.dg);touch(p);return}
+  if(t.dataset.fixpair){const[a,b]=t.dataset.fixpair.split('|'),g=p.groups.find(g=>g.colors.includes(b))||p.groups.find(g=>g.colors.includes(a));if(!g)return;const c=g.colors.includes(b)?b:a;
+    cedOpen(g.id,c,c===b?a:b);ui.view='swatches';ui.sw.view='groups';ui.sw.select=false;renderMain();const ed=$('ced');if(ed){ed.scrollIntoView({block:'center'});$('cedApart')?.focus({preventScroll:true})}return}
+  if(t.dataset.edit){const[gid,c]=t.dataset.edit.split('|');if(ui.edit&&ui.edit.gid===gid&&ui.edit.c===c){ui.edit=null;renderMain();return}cedOpen(gid,c);renderMain();$('cedHex')?.focus();return}
+  if(t.id==='cedCancel'){const c=ui.edit&&ui.edit.c;ui.edit=null;renderMain();document.querySelector(`.sw[data-c="${c}"] .chip`)?.focus();return}
+  if(t.id==='cedSave'){cedSave();return}
+  if(t.id==='cedApart'){cedApart();return}
+  if(t.id==='cedEye'||t.dataset.eye){const gid=t.dataset.eye;(async()=>{try{const r=await new EyeDropper().open(),c=norm(r.sRGBHex);if(!c)return;
+      if(gid){const g=p.groups.find(x=>x.id===gid);if(!g)return;if(g.colors.includes(c)){toast(c.toUpperCase()+' is already in '+g.name);return}g.colors.push(c);ui.landedC=c;touch(p);toast('Added '+c.toUpperCase())}else cedSet(c)}catch(err){}})();return}
+  if(t.dataset.add){const g=p.groups.find(g=>g.id===t.dataset.add);const raw=$('hex-'+g.id).value;const cs=raw.trim()?raw.split(/[\s,;]+/).map(norm).filter(Boolean):[norm($('pick-'+g.id).value)];if(!cs.length){toast('Enter hex codes like #ff8800');return}
+    const uniq=[...new Set(cs)],fresh=uniq.filter(c=>!g.colors.includes(c));fresh.forEach(c=>g.colors.push(c));touch(p);
+    const skip=cs.length-fresh.length;toast(fresh.length?'Added '+fresh.length+(skip?' · '+skip+' already in '+g.name:''):(cs.length>1?'All of those are':'That colour is')+' already in '+g.name);return}
+  if(t.dataset.rm){const[gid,c]=t.dataset.rm.split('|');const g=p.groups.find(g=>g.id===gid);snapshot();g.colors=g.colors.filter(x=>x!==c);if(ui.edit&&ui.edit.c===c)ui.edit=null;touch(p);toast('Removed '+c.toUpperCase(),{undoable:true});return}
+  if(t.dataset.apply){const g=p.groups.find(g=>g.id===t.dataset.apply);snapshot();g.colors=swSort(g.colors);touch(p);toast('Order saved',{undoable:true});return}
+  if(t.dataset.dg){const g=p.groups.find(g=>g.id===t.dataset.dg);snapshot();p.groups=p.groups.filter(x=>x!==g);touch(p);toast('Removed “'+g.name+'” ('+g.colors.length+' colour'+(g.colors.length===1?'':'s')+')',{undoable:true});return}
+  if(t.dataset.dupg){const i=p.groups.findIndex(g=>g.id===t.dataset.dupg),g=p.groups[i],ng={id:uid(),name:g.name+' (copy)',colors:g.colors.slice()};p.groups.splice(i+1,0,ng);ui.landedG=[ng.id];touch(p);toast('Duplicated '+g.name);return}
+  if(t.id==='dupPal'){const np=JSON.parse(JSON.stringify(p));np.id=uid();np.name=p.name+' (copy)';np.updated=Date.now();np.groups.forEach(g=>g.id=uid());state.palettes.push(np);state.open=np.id;ui.fresh=true;ui.edit=null;save();render();toast('Duplicated as '+np.name);return}
   if(t.dataset.rg){const g=p.groups.find(g=>g.id===t.dataset.rg);inlineRename(g.name,v=>{g.name=v;touch(p)});return}
   if(t.id==='rename'){inlineRename(p.name,v=>{p.name=v;touch(p)});return}
   if(t.id==='addGroup'){p.groups.push({id:uid(),name:$('newGroup').value.trim()||'Sub-palette',colors:[]});touch(p);return}
   if(t.id==='copyAll'){copy(all(p).join(', '));return}
   if(t.id==='delPal'){$('confirm').innerHTML=`<div class="row"><span>Delete “${esc(p.name)}” and all its colours?</span><button class="danger" id="yesDel">Delete</button><button id="noDel">Keep it</button></div>`;return}
-  if(t.id==='yesDel'){state.palettes=state.palettes.filter(x=>x.id!==p.id);state.open=state.palettes[0]?.id||null;save();render();return}
+  if(t.id==='yesDel'){snapshot();state.palettes=state.palettes.filter(x=>x.id!==p.id);state.open=state.palettes[0]?.id||null;save();render();toast('Deleted '+p.name,{undoable:true});return}
   if(t.id==='noDel'){$('confirm').innerHTML='';return}
   if(t.id==='okRen'){const v=$('renIn').value.trim();if(v)inlineRename.cb(v);else render();return}
 });
 function inlineRename(old,cb){inlineRename.cb=cb;$('confirm').innerHTML=`<div class="row"><input id="renIn" value="${esc(old)}"><button class="primary" id="okRen">Save name</button><button id="noDel">Cancel</button></div>`;$('renIn').focus();$('renIn').select()}
+/* ----- backups: a JSON file or text holding {palettes, uss} ----- */
+function readBackup(text){let d;try{d=JSON.parse(text)}catch(e){return null}
+  if(Array.isArray(d)&&d.every(x=>x&&Array.isArray(x.groups)))d={palettes:d};
+  if(!d||Array.isArray(d)||!Array.isArray(d.palettes))return null;
+  const ok=d.palettes.filter(x=>x&&typeof x.name==='string'&&Array.isArray(x.groups));return{palettes:ok,uss:Array.isArray(d.uss)?d.uss.filter(x=>x&&Array.isArray(x.groups)):[]}}
+function askRestore(d){ui.pendingRestore=d;const det=$('restAsk')?.closest('details');if(det)det.open=true;
+  $('restAsk').innerHTML=`<div class="restask"><span>This backup holds ${d.palettes.length} palette${d.palettes.length===1?'':'s'}${d.uss.length?' and '+d.uss.length+' swatch set'+(d.uss.length===1?'':'s'):''}. Add them to what you have, or replace everything?</span>
+    <div class="row"><button class="primary" data-rest="add">Add to my palettes</button><button class="danger" data-rest="replace">Replace everything</button><button class="ghost" data-rest="no">Cancel</button></div></div>`;
+  $('restAsk').querySelector('button')?.focus()}
+function restoreBackup(d,replace){snapshot();const pals=d.palettes.map(x=>({...x,id:uid(),updated:x.updated||Date.now(),groups:x.groups.map(g=>({...g,id:uid(),colors:(g.colors||[]).map(c=>norm(String(c))).filter(Boolean)}))}));
+  const uss=d.uss.map(x=>({...x,id:uid()}));
+  if(replace){state.palettes=pals;state.uss=uss;state.ussOpen=uss[0]?.id||null}else{state.palettes.push(...pals);if(uss.length)(state.uss=state.uss||[]).push(...uss)}
+  state.open=(replace?pals[0]?.id:state.palettes.some(x=>x.id===state.open)?state.open:pals[0]?.id)||state.palettes[0]?.id||null;ui.view='swatches';ui.edit=null;ui.sel.clear();save();render();
+  toast((replace?'Replaced with ':'Added ')+pals.length+' palette'+(pals.length===1?'':'s')+(uss.length?' and '+uss.length+' swatch set'+(uss.length===1?'':'s'):''),{undoable:true})}
+/* ----- Adobe Swatch Exchange (.ase) ----- */
+function parseASE(buf,fname){const v=new DataView(buf);if(buf.byteLength<12||v.getUint32(0)!==0x41534546)return null;
+  const n=v.getUint32(8),groups=[];let cur=null,o=12;const grp=name=>{cur={id:uid(),name,colors:[]};groups.push(cur)};
+  const str=()=>{const len=v.getUint16(o);o+=2;let s='';for(let i=0;i<len;i++){const ch=v.getUint16(o+i*2);if(ch)s+=String.fromCharCode(ch)}o+=len*2;return s};
+  const lab2hex=(L,a,b)=>{// CIE Lab (D50) to sRGB
+    const fy=(L+16)/116,fx=fy+a/500,fz=fy-b/200,f=t=>t**3>.008856?t**3:(t-16/116)/7.787;let[X,Y,Z]=[.9642*f(fx),f(fy),.8249*f(fz)];
+    const r=3.1338561*X-1.6168667*Y-.4906146*Z,g=-.9787684*X+1.9161415*Y+.0334540*Z,bl=.0719453*X-.2289914*Y+1.4052427*Z;return toHex([r,g,bl].map(x=>Math.max(0,Math.min(1,x))))};
+  for(let k=0;k<n&&o+6<=buf.byteLength;k++){const type=v.getUint16(o),len=v.getUint32(o+2),start=o+6;o=start;
+    if(type===0xc001)grp(str()||'Group');
+    else if(type===0xc002)cur=null;
+    else if(type===1){str();const model=String.fromCharCode(...[0,1,2,3].map(i=>v.getUint8(o+i)));o+=4;const fl=i=>v.getFloat32(o+i*4);let c=null;
+      if(model==='RGB ')c='#'+[0,1,2].map(i=>Math.round(Math.max(0,Math.min(1,fl(i)))*255).toString(16).padStart(2,'0')).join('');
+      else if(model==='Gray')c='#'+Math.round(Math.max(0,Math.min(1,fl(0)))*255).toString(16).padStart(2,'0').repeat(3);
+      else if(model==='CMYK'){const[C,M,Y,K]=[0,1,2,3].map(fl);c='#'+[C,M,Y].map(x=>Math.round(255*(1-x)*(1-K)).toString(16).padStart(2,'0')).join('')}
+      else if(model==='LAB ')c=lab2hex(fl(0)*100,fl(1),fl(2));
+      if(c){if(!cur)grp('Main');if(!cur.colors.includes(c))cur.colors.push(c)}}
+    o=start+len}
+  const gs=groups.filter(g=>g.colors.length);return gs.length?{id:uid(),name:fname.replace(/\.[^.]+$/,''),updated:Date.now(),groups:gs}:null}
+/* ----- images: an exact palette strip, or the main colours of a picture ----- */
+// Small images with at most 256 colours (Lospec strips, Aseprite palettes) give their exact colours in reading order.
+// Anything else is reduced to 16 colours with k-means in OKLab, seeded so the same image always gives the same palette.
+function imagePalette(img,fname,count=16){const W=img.naturalWidth||img.width,H=img.naturalHeight||img.height;if(!W||!H)return null;
+  const sc=Math.min(1,Math.sqrt(160000/(W*H))),w=Math.max(1,Math.round(W*sc)),h=Math.max(1,Math.round(H*sc));
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=sc<1;x.drawImage(img,0,0,w,h);
+  const d=x.getImageData(0,0,w,h).data,hist=new Map(),order=[];
+  for(let i=0;i<d.length;i+=4){if(d[i+3]<128)continue;const c='#'+[d[i],d[i+1],d[i+2]].map(v=>v.toString(16).padStart(2,'0')).join('');const n=hist.get(c);if(n)hist.set(c,n+1);else{hist.set(c,1);order.push(c)}}
+  const base=fname.replace(/\.[^.]+$/,'');if(!order.length)return null;
+  if(sc===1&&order.length<=256)return{id:uid(),name:base,updated:Date.now(),groups:[{id:uid(),name:'Main',colors:order}]};
+  const pts=[...hist].map(([c,n])=>[oklab(c),n,c]),R=mulberry(order.length*7919+pts.length),K=Math.min(count,pts.length);
+  const d2=(a,b)=>(a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;let cen=[pts.reduce((a,b)=>b[1]>a[1]?b:a)[0].slice()];
+  while(cen.length<K){const ds=pts.map(([q,n])=>n*Math.min(...cen.map(c=>d2(c,q)))),tot=ds.reduce((a,b)=>a+b,0);let r=R()*tot,i=0;while(i<ds.length-1&&(r-=ds[i])>0)i++;cen.push(pts[i][0].slice())}
+  for(let it=0;it<14;it++){const acc=cen.map(()=>[0,0,0,0]);for(const[q,n]of pts){let bi=0,bd=1e9;cen.forEach((c,j)=>{const v=d2(c,q);if(v<bd){bd=v;bi=j}});const a=acc[bi];a[0]+=q[0]*n;a[1]+=q[1]*n;a[2]+=q[2]*n;a[3]+=n}
+    cen=cen.map((c,j)=>acc[j][3]?[acc[j][0]/acc[j][3],acc[j][1]/acc[j][3],acc[j][2]/acc[j][3]]:c)}
+  // each centre snaps to the nearest real pixel colour, so the palette holds colours that are in the picture
+  const cs=[...new Set(cen.map(c=>pts.reduce((a,b)=>d2(b[0],c)<d2(a[0],c)?b:a)[2]))];
+  return{id:uid(),name:base+' ('+cs.length+' colours)',updated:Date.now(),groups:[{id:uid(),name:'Main',colors:sortColors(cs,'light')}]}}
+const loadImage=blob=>new Promise((res,rej)=>{const u=URL.createObjectURL(blob),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);res(im)};im.onerror=()=>{URL.revokeObjectURL(u);rej()};im.src=u});
+const isImage=f=>/^image\//.test(f.type)||/\.(png|gif|jpe?g|webp|bmp)$/i.test(f.name);
 function importFiles(files){
-  let ok=0,bad=0;
-  let sets=0;Promise.all([...files].map(f=>f.text().then(t=>{if(/\.json$/i.test(f.name)||/^\s*[\[{]/.test(t)){const bs=parseUSS(t);if(bs){state.uss=state.uss||[];bs.forEach(x=>state.uss.push(x));state.ussOpen=bs[0].id;sets+=bs.length;return}bad++;return}const p=parsePalette(t,f.name);if(p){state.palettes.push(p);state.open=p.id;ok++}else bad++})))
-  .then(()=>{if(sets){ui.view='uss';ui.ussTab='arrange';ui.ussSel=null;save();render();toast('Imported '+sets+' swatch set'+(sets>1?'s':''));return}save();render();toast(ok?`Imported ${ok} palette${ok>1?'s':''}`+(bad?`, skipped ${bad} unreadable file${bad>1?'s':''}`:''):'Those files are not palettes Palette Shelf can read (.gpl, .txt, .hex, Universal Swatch Slots .json)')});
+  let ok=0,bad=0,sets=0,backup=null;
+  Promise.all([...files].map(f=>{
+    if(isImage(f))return loadImage(f).then(im=>{const p=imagePalette(im,f.name||'Pasted image');if(p){state.palettes.push(p);state.open=p.id;ok++}else bad++},()=>{bad++});
+    if(/\.ase$/i.test(f.name))return f.arrayBuffer().then(b=>{const p=parseASE(b,f.name);if(p){state.palettes.push(p);state.open=p.id;ok++}else bad++});
+    return f.text().then(t=>{if(/\.json$/i.test(f.name)||/^\s*[\[{]/.test(t)){const bk=readBackup(t);if(bk){backup=bk;return}const bs=parseUSS(t);if(bs){state.uss=state.uss||[];bs.forEach(x=>state.uss.push(x));state.ussOpen=bs[0].id;sets+=bs.length;return}bad++;return}const p=parsePalette(t,f.name);if(p){state.palettes.push(p);state.open=p.id;ok++}else bad++})}))
+  .then(()=>{if(backup)askRestore(backup);
+    if(sets){ui.view='uss';ui.ussTab='arrange';ui.ussSel=null;save();render();toast('Imported '+sets+' swatch set'+(sets>1?'s':''));return}
+    if(ok){ui.view='swatches';ui.fresh=true;ui.edit=null}save();render();if(ok)revealMain();
+    if(backup&&!ok&&!bad)return;
+    toast(ok?`Imported ${ok} palette${ok>1?'s':''}`+(bad?`, skipped ${bad} unreadable file${bad>1?'s':''}`:''):'Those files are not palettes Palette Shelf can read (.gpl, .txt, .hex, .ase, images, Universal Swatch Slots .json, backups)')});
 }
+document.addEventListener('paste',e=>{const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'))return;const fs=[...(e.clipboardData?.files||[])].filter(isImage);if(fs.length){e.preventDefault();importFiles(fs)}});
 document.addEventListener('dragover',e=>e.preventDefault());
 document.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files.length)importFiles(e.dataTransfer.files)});
 document.addEventListener('change',e=>{if(e.target.id==='expGroup'){ui.exp.group=e.target.value;renderMain();return}if(e.target.id==='swSelect'){ui.sw.select=e.target.checked;renderMain();return}if(e.target.closest&&e.target.closest('#randPanel'))return;if(e.target.id==='scope'){ui.scope=e.target.value;renderMain();return}if(e.target.id==='gMode'){ui.gen.mode=e.target.value;renderMain();return}if(e.target.id==='gpl'){importFiles(e.target.files);e.target.value='';return}if(e.target.id==='sortPal'){ui.sortPal=e.target.value;renderList()}});
 document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#randPanel')){if(e.target.classList.contains('srcg')){const bs=[...document.querySelectorAll('.srcg')],on=bs.filter(b=>b.checked).map(b=>b.dataset.g);if(!on.length){e.target.checked=true;toast('Keep at least one sub-palette');return}ui.rand.srcGroups=on.length===bs.length?null:on;ui.rand.nTint='auto';renderMain();return}if(e.target.id==='rPreset'){ui.rand.preset=e.target.value;ui.rand.srcGroups=null;ui.rand.neutral=presetOf(e.target.value).neutral;ui.rand.nTint='auto';ui.rand.emissive=e.target.value==='monoscreen'||ui.rand.emissive;renderMain();return}readRand();if(['rRamps','rNeutral','rLegHues','hwRand'].includes(e.target.id)){renderMain();return}if(e.target.id!=='rName')updateRandom();return}const gk={gSteps:'steps',gExt:'ext',gRamp:'ramp',gShift:'shift',gRot:'rot',gChroma:'chroma'}[e.target.id];if(gk){ui.gen[gk]=+e.target.value;$(e.target.id+'o').textContent=e.target.value+e.target.dataset.unit;updateGen();return}if(e.target.id==='search'){ui.q=e.target.value;renderList()}});
 document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classList.contains('st')&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const bs=[...e.target.parentNode.children].filter(b=>!b.disabled),i=bs.indexOf(e.target),d=e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1,n=bs[i+d];if(n)n.click();return}if(e.key!=='Enter')return;const id=e.target.id;if(id==='rName'){e.preventDefault();e.target.blur();return}else if(id==='newGroup')$('addGroup').click();else if(id==='renIn')$('okRen').click();else if(id.startsWith('hex-'))document.querySelector(`[data-add="${id.slice(4)}"]`).click()});
+// colour editor fields
+document.addEventListener('input',e=>{const t=e.target,ed=ui.edit;if(!ed||!t.id||!t.id.startsWith('ced'))return;
+  if(t.id==='cedPick')cedSet(norm(t.value),'pick');
+  else if(t.id==='cedHex'){const h=norm(t.value);if(h)cedSet(h,'hex')}
+  else if(t.id==='cedL'||t.id==='cedC'||t.id==='cedH'){ed[t.id.slice(3)]=+t.value;$(t.id+'o').textContent=t.value;cedSet(safe(ed.L/100,ed.C/100,ed.H),'lch')}
+  else if(t.id==='cedAll')ed.everywhere=t.checked});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.id==='cedHex'&&ui.edit){if(!norm(t.value)){toast('Enter a hex code like #FF8800');t.value=ui.edit.v.toUpperCase()}return}
+  if(t.id==='impFile'){const f=t.files[0];t.value='';if(!f)return;f.text().then(x=>{const d=readBackup(x);if(d)askRestore(d);else toast('That file is not a Palette Shelf backup')});return}});
+// Keyboard shortcuts. Single keys only act when focus is not in a text field.
+function typing(t){return t&&(t.tagName==='INPUT'&&!['checkbox','radio','range','color','button'].includes(t.type)||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable)}
+document.addEventListener('keydown',e=>{const t=e.target;
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key.toLowerCase()==='z'&&!typing(t)){if(doUndo()){e.preventDefault();$('toast').classList.remove('act')}return}
+  if(e.key==='Enter'&&ui.edit&&(t.id==='cedHex')){e.preventDefault();t.blur();cedSave();return}
+  if(e.key==='Escape'){
+    if(ui.edit){const c=ui.edit.c;ui.edit=null;renderMain();document.querySelector(`.sw[data-c="${c}"] .chip`)?.focus();return}
+    if(ui.pendingRestore){ui.pendingRestore=null;$('restAsk').innerHTML='';return}
+    if($('confirm')&&$('confirm').innerHTML){$('confirm').innerHTML='';return}
+    if(ui.exp.open&&ui.view!=='random'&&ui.view!=='uss'){ui.exp.open=false;renderMain();$('exportBtn')?.focus();return}
+    if(ui.view==='random'||ui.view==='uss'){if(typing(t)&&t.id!=='rName')return;ui.view='swatches';renderMain();return}
+    if(t.id==='search'){t.blur();return}
+    return}
+  if(e.ctrlKey||e.metaKey||e.altKey||typing(t))return;
+  const k=e.key;
+  if(k==='/'){e.preventDefault();$('search').focus();$('search').select();return}
+  if(k==='n'||k==='N'){e.preventDefault();$('addPal').click();return}
+  if(k==='r'||k==='R'){e.preventDefault();if(ui.view==='random')$('rShuffle')?.click();else $('openRandom').click();return}
+  if((k==='e'||k==='E')&&$('exportBtn')){e.preventDefault();$('exportBtn').click();return}
+  if(k==='?'){e.preventDefault();toast('Keys: / search · N new palette · R random or shuffle · E export · Ctrl+Z undo · Esc close · Alt+arrows move a swatch');return}});
 function isDark(){const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches}
-function paintThemeBtn(){const b=$('themeBtn');if(b)b.textContent=isDark()?'☀ Light':'☾ Dark'}
+function paintThemeBtn(){const b=$('themeBtn');if(!b)return;const l=isDark()?'Switch to light mode':'Switch to dark mode';b.textContent=isDark()?'☀ Light':'☾ Dark';b.title=l;b.setAttribute('aria-label',l)}
 try{const t=localStorage.getItem('palette-shelf-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}
 document.addEventListener('click',e=>{if(e.target.closest('#themeBtn')){const t=isDark()?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('palette-shelf-theme',t)}catch(err){}paintThemeBtn();renderMain()}});
 render();paintThemeBtn();

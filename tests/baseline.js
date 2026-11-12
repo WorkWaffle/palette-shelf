@@ -8,7 +8,7 @@ global.localStorage={getItem:()=>null,setItem(){}};global.document={addEventList
 global.window={};global.navigator={};global.matchMedia=()=>({matches:false,addEventListener(){}});global.Blob=require('buffer').Blob;
 const R={};
 eval(js+`
-const up='/root/.claude/uploads/ea685d34-b130-5f53-be8b-5c4c4a1d9a70/';
+const up=require('path').join(__dirname,'fixtures')+'/';
 const base={...ui.rand};
 const presets=Object.keys(PRESETS);
 const gens=[];
@@ -42,10 +42,10 @@ for(const grouping of ['groups','one'])for(const naming of ['colours','primary',
 ui.rand={...base,preset:'computing90',spread:'full',seed:12345};
 for(const g of opts){const b=ussNew();Object.assign(b.gen,g);if(g.source==='pal'&&!g.pal)b.gen.pal=p0.id;ussGenerate(b);U.push([JSON.stringify(g),b.groups.map(x=>[x.name,x.swatches.map(s=>[s.name,s.p,s.s,s.m])])])}
 R.uss=U;
-const raw=fs.readFileSync(up+'e8f33082-USS_Default.json','utf8');const ub=parseUSS(raw);R.ussImport=ub.map(b=>[b.name,b.file,b.active,b.groups.map(g=>[g.name,g.swatches.map(s=>[s.name,s.p,s.s,s.m])])]);
+const raw=fs.readFileSync(up+'USS_Default.json','utf8');const ub=parseUSS(raw);R.ussImport=ub.map(b=>[b.name,b.file,b.active,b.groups.map(g=>[g.name,g.swatches.map(s=>[s.name,s.p,s.s,s.m])])]);
 R.ussJSON=ussJSON(ub[0]);
 // import / export formats
-R.parse=['157c0881-cosmo-zoids.txt','bc0280da-cosmo-zoids.hex','e5465c06-cosmo-zoids.gpl','8b94539a-ennis-blade-extended-cut.gpl','95f78f1b-Gruvbox.gpl'].map(f=>{const p=parsePalette(fs.readFileSync(up+f,'utf8'),f);return p&&[p.name,p.groups.map(g=>[g.name,g.colors])]});
+R.parse=['cosmo-zoids.txt','cosmo-zoids.hex','cosmo-zoids.gpl','ennis-blade-extended-cut.gpl','Gruvbox.gpl'].map(f=>{const p=parsePalette(fs.readFileSync(up+f,'utf8'),f);return p&&[p.name,p.groups.map(g=>[g.name,g.colors])]});
 const multi={name:'Test',groups:[{id:'a',name:'Warm',colors:['#ff0000','#ffaa00']},{id:'b',name:'Cool',colors:['#0000ff']}]};
 R.exports=[];for(const fmt of ['gpl','txt','hex','all'])for(const scope of ['whole','each','one']){ui.exp.fmt=fmt;ui.exp.scope=scope;ui.exp.group='b';R.exports.push([fmt,scope,exportFiles(multi).map(f=>[f.name,f.text])])}
 // colour names and maths
