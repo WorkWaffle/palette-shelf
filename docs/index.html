@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palette Shelf</title>
+<meta name="description" content="A personal colour-palette manager for Linux: collect, analyse and generate palettes, export for GIMP, Aseprite, slides and code, and build Satisfactory swatch sets.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+:root{--bg:#fff4e4;--panel:#ffe6c2;--fg:#140300;--muted:#582c00;--line:#ffca86;--accent:#613400;--accent-fg:#fff4e4;--shadow:0 1px 0 rgba(59,26,0,.06);
+  --mono:'Space Mono',ui-monospace,monospace;--ease-out:cubic-bezier(0.23,1,0.32,1);color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#140300;--panel:#331600;--fg:#ffca86;--muted:#d1883d;--line:#582c00;--accent:#f29e00;--accent-fg:#140300;color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 var(--mono)}
+a{color:var(--accent)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left))}
+header{padding:56px 0 28px}
+.brand{display:flex;align-items:center;gap:12px;margin:0 0 8px}
+.brand svg{flex:none}
+h1{font-size:clamp(30px,6vw,46px);line-height:1.1;margin:0;letter-spacing:-.01em}
+.tag{font-size:clamp(15px,2.2vw,18px);color:var(--muted);margin:10px 0 24px;max-width:46ch}
+.btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);text-decoration:none;font-weight:700;font-size:14px;transition:transform 160ms var(--ease-out),border-color 160ms var(--ease-out)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn small{font-weight:400;opacity:.8}
+@media (hover:hover){.btn:hover{border-color:var(--accent)}}
+.btn:active{transform:scale(.98)}
+.meta{font-size:12px;color:var(--muted);margin-top:12px}
+.hero{margin:12px 0 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);background:var(--panel)}
+.hero img,.shots img{display:block;width:100%;height:auto}
+section{padding:44px 0 8px}
+h2{font-size:22px;margin:0 0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h3{margin:0 0 6px;font-size:15px}
+.card p{margin:0;font-size:13px;color:var(--muted)}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:14px}
+figure{margin:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+figcaption{padding:8px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--panel);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+code{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12.5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:12.5px}
+pre code{background:none;border:0;padding:0}
+.stripe{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:18px 0 0;max-width:420px}
+.stripe span{flex:1}
+footer{padding:40px 0 56px;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:active{transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect x="2" y="6" width="36" height="6" rx="2" fill="#8c2f1b"/><rect x="2" y="14" width="36" height="6" rx="2" fill="#c4551f"/><rect x="2" y="22" width="36" height="6" rx="2" fill="#e3923a"/><rect x="2" y="30" width="36" height="6" rx="2" fill="#f2c46d"/></svg>
+    <h1>Palette Shelf</h1>
+  </div>
+  <p class="tag">A personal colour-palette manager for Linux. Collect, analyse and generate palettes, then export them for pixel art, slides, code or Satisfactory.</p>
+  <div class="btns">
+    <a class="btn primary" href="https://github.com/WorkWaffle/palette-shelf/releases/download/v2.1.0/palette-shelf_2.1.0_amd64.deb">Download .deb <small>1.6 MB</small></a>
+    <a class="btn" href="https://github.com/WorkWaffle/palette-shelf/releases/download/v2.1.0/Palette-Shelf-2.1.0-tauri-x86_64.AppImage">AppImage <small>80 MB</small></a>
+    <a class="btn" href="app/">Try it in your browser</a>
+  </div>
+  <p class="meta">Version 2.1.0 · Linux x86_64 · <a href="https://github.com/WorkWaffle/palette-shelf/releases/tag/v2.1.0">release notes and all downloads</a> · <a href="https://github.com/WorkWaffle/palette-shelf">source</a></p>
+  <div class="stripe" aria-hidden="true"><span style="background:#48a56a"></span><span style="background:#eaaf41"></span><span style="background:#e0823a"></span><span style="background:#ce4a4a"></span><span style="background:#b25da6"></span><span style="background:#6688c3"></span><span style="background:#d6cfb8"></span></div>
+</header>
+
+<div class="hero"><img src="img/hero.webp" width="1300" height="820" alt="Palette Shelf showing the Autumn Walk palette as swatches grouped into sub-palettes, with the palette list on the left"></div>
+
+<section>
+  <h2>What it does</h2>
+  <div class="grid">
+    <div class="card"><h3>Collect and organise</h3><p>Palettes with sub-palettes. Edit any colour with OKLCH sliders, drag swatches between groups, sort by lightness or hue, and undo with Ctrl+Z.</p></div>
+    <div class="card"><h3>Analyse</h3><p>Contrast grid, colour-blind and projector checks, a dither test, hue and lightness maps in the style of Lospec and DawnBringer, and near-duplicate detection. Click a clashing pair to separate it.</p></div>
+    <div class="card"><h3>Generate</h3><p>A seeded random generator with a harmony wheel and styles from '90s computing to Cyberpunk neon. It also fills in between colours, extends ramps and restyles your own palettes.</p></div>
+    <div class="card"><h3>Import anything</h3><p>GIMP .gpl, Paint.NET .txt, .hex, Adobe .ase and PNG palette strips. Drop in a screenshot or photo to get its 16 main colours.</p></div>
+    <div class="card"><h3>Export for the job</h3><p>Palette files for GIMP and Paint.NET, a PNG strip for Aseprite and game engines, a labelled swatch sheet for slides, CSS variables, JSON, or a plain names-and-hex list.</p></div>
+    <div class="card"><h3>Satisfactory swatches</h3><p>Builds Universal Swatch Slots sets (primary and secondary pairs) from any palette or style, with contrast rules, drag-to-arrange and a ready-to-load .json.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>A closer look</h2>
+  <div class="shots">
+    <figure><img src="img/analysis.webp" width="1300" height="820" alt="Analysis tab with summary statistics, section links and the accessibility check" loading="lazy"><figcaption>Analysis: accessibility, contrast and colour maps</figcaption></figure>
+    <figure><img src="img/random.webp" width="1300" height="820" alt="Random palette generator with style, colour relation choices and the harmony wheel" loading="lazy"><figcaption>Random generator with the harmony wheel</figcaption></figure>
+    <figure><img src="img/satisfactory.webp" width="1300" height="820" alt="Satisfactory swatch builder arranging primary and secondary swatch pairs into groups" loading="lazy"><figcaption>Satisfactory Universal Swatch Slots builder</figcaption></figure>
+    <figure><img src="img/select.webp" width="1300" height="820" alt="Light theme with swatches being selected to build a new sub-palette" loading="lazy"><figcaption>Light theme: selecting colours to build a sub-palette</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <h2>Which download?</h2>
+  <div class="tablewrap"><table>
+    <tr><th>File</th><th>Best for</th><th>Size</th></tr>
+    <tr><td><a href="https://github.com/WorkWaffle/palette-shelf/releases/download/v2.1.0/palette-shelf_2.1.0_amd64.deb">.deb</a></td><td>Ubuntu, Mint, Debian, Pop!_OS. Uses the system's WebKitGTK, so it is small and light on memory.</td><td>1.6 MB</td></tr>
+    <tr><td><a href="https://github.com/WorkWaffle/palette-shelf/releases/download/v2.1.0/palette-shelf-2.1.0-1.x86_64.rpm">.rpm</a></td><td>Fedora, openSUSE. Same as the .deb.</td><td>1.6 MB</td></tr>
+    <tr><td><a href="https://github.com/WorkWaffle/palette-shelf/releases/download/v2.1.0/Palette-Shelf-2.1.0-tauri-x86_64.AppImage">AppImage (Tauri)</a></td><td>Any distro, with no install needed. Carries its own WebKitGTK.</td><td>80 MB</td></tr>
+    <tr><td><a href="https://github.com/WorkWaffle/palette-shelf/releases/download/v2.1.0/Palette-Shelf-2.1.0-electron-x86_64.AppImage">AppImage (Electron)</a></td><td>Any distro. The only build with the screen eyedropper (💧), because it runs on Chromium.</td><td>120 MB</td></tr>
+    <tr><td><a href="https://github.com/WorkWaffle/palette-shelf/releases/download/v2.1.0/palette-shelf-2.1.0-standalone.html">Standalone .html</a></td><td>Windows, macOS or anywhere with a browser. Open the file; it needs no internet.</td><td>0.3 MB</td></tr>
+  </table></div>
+  <p style="font-size:13px;color:var(--muted)">To install the .deb, run:</p>
+  <pre><code>sudo apt install ./palette-shelf_2.1.0_amd64.deb</code></pre>
+  <p style="font-size:13px;color:var(--muted)">To run an AppImage, make it executable first: <code>chmod +x Palette-Shelf-*.AppImage</code>. Each build and the browser version keep their own saved palettes. To move them, use <b>Back up or restore → Save backup file</b>, then <b>Open backup file</b> in the other copy.</p>
+</section>
+
+<footer>
+  Palette Shelf · <a href="https://github.com/WorkWaffle/palette-shelf">GitHub</a> · <a href="https://github.com/WorkWaffle/palette-shelf/releases">all releases</a> · <a href="https://github.com/WorkWaffle/palette-shelf/issues">report a problem</a>
+</footer>
+</div>
+</body>
+</html>

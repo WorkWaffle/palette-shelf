@@ -33,4 +33,7 @@ tauri_out = out.replace("img-src data: blob:", "img-src data: blob:; connect-src
 assert tauri_out != out, 'CSP not found'
 (root / 'tauri/www').mkdir(parents=True, exist_ok=True)
 (root / 'tauri/www/index.html').write_text(tauri_out)
-print('wrote app/index.html, dist/palette-shelf-windows.html and tauri/www/index.html', len(out), 'bytes')
+# GitHub Pages: the standalone build, served at /app/ next to the landing page in docs/
+(root / 'docs/app').mkdir(parents=True, exist_ok=True)
+(root / 'docs/app/index.html').write_text(out)
+print('wrote app/index.html, dist/palette-shelf-windows.html, tauri/www/index.html and docs/app/index.html', len(out), 'bytes')
