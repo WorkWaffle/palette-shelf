@@ -30,9 +30,10 @@ CSS; markup (rail with #addPal, #openRandom, #openUss, #saveWarn, backup panel);
 - Style: Space Mono, amber palette with light/dark toggle, row-style settings panels, stepped sliders, toggle switches.
 
 ## Tests (all in `tests/`)
-- `baseline.js <page.html> 'render\(\);paintThemeBtn\(\);' out.json`: Node data snapshot (no browser). Compare two runs with `cmp`. Reads its sample files from `tests/fixtures/`.
+- `baseline.js <page.html> 'render\(\);paintThemeBtn\(\);' out.json`: Node data snapshot (no browser). Compare two runs with `cmp`. Reads its sample files from `tests/fixtures/`. The colour-maths sample is reseeded, so it does not shift when generator or Satisfactory output changes (snapshots from before 2.1.0 differ there for that reason only).
 - `uishots.js <page.html> <outdir>` (Electron): 24 screenshots at 1300 and 380 wide with seeded randomness; compare folders with `python3 cmpshots.py dirA dirB`.
 - `actions.js <page.html> out.json` (Electron): scripted click-through that records saved state after each step; compare runs. The `rand-base` step's selector is stale (it predates 1.9.0).
 - `testuss.js` (Electron, uses `app/index.html`): Satisfactory generate, drag, move, export.
 - `audit.js <page.html>`: layout audit across widths; writes issues to `$TMPDIR/audit.json` (18 known entries, all present since 1.9.0; compare against a run on the previous version, not against zero). `motion.js <page.html>`: checks each animation plays once. `perf.js <page.html>`: timings.
 - `webkit_smoke.py <abs path to app/index.html> <out.png>` (Python + WebKitGTK): runs the page in the engine Tauri/Wails use; prints RESULT JSON with `errors`. See NATIVE.md.
+- `variety.js <page.html> [N]` (Node): per-preset repetition metrics over N shuffles (palette distance, hue coverage, family combinations). Use it before and after changing a preset; see the preset variety audit in REVIEW.md.

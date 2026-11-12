@@ -625,25 +625,34 @@ function updateGen(){const p=cur();if(!p||!$('genOut'))return;lastGen=generate(p
     :'<p class="empty">The source has no colours to work from yet.</p>'}
 /* ---------- random palettes ---------- */
 // Template families: h/c/l of the middle step, dh/dc = change in hue/chroma per step darker (measured from the source palette)
-const GRUV={fams:[
+// jit: hue wander per shuffle; pick: how many template families a 'multi' shuffle uses (default 4-5)
+const GRUV={jit:10,pick:[4,6],fams:[
   {name:'Red',h:29,c:.2,l:.55,dh:-1,dc:-.02},{name:'Green',h:109,c:.135,l:.66,dh:-2.5,dc:-.023},{name:'Yellow',h:78,c:.143,l:.73,dh:-6,dc:-.015},
   {name:'Blue',h:199,c:.066,l:.58,dh:23,dc:.02},{name:'Purple',h:352,c:.111,l:.6,dh:-9,dc:.013},{name:'Aqua',h:145,c:.094,l:.65,dh:8,dc:-.013},{name:'Orange',h:46,c:.171,l:.62,dh:-6.5,dc:-.01}],
   neut:[{name:'Dark',L:[.22,.55],c:.01,h:50},{name:'Light',L:[.78,.97],c:.055,h:90}]};
+// '90s computing: the six Apple bands washed out about a fifth, plus the teal and lime of early PC and Mac system palettes
+// at the same chroma, with aged beige plastic and a warm charcoal for neutrals. jit: hue wander per shuffle (default 7°).
+const RETRO90={jit:12,fams:[
+  {name:'Green',h:148,c:.125,l:.66,dh:3,dc:.012},{name:'Yellow',h:80,c:.13,l:.8,dh:-5,dc:.01},{name:'Orange',h:56,c:.135,l:.71,dh:-3,dc:.012},
+  {name:'Red',h:24,c:.15,l:.6,dh:-1,dc:.012},{name:'Purple',h:330,c:.13,l:.58,dh:-3,dc:.01},{name:'Blue',h:255,c:.11,l:.6,dh:4,dc:.008},
+  {name:'Teal',h:195,c:.105,l:.64,dh:5,dc:.01},{name:'Lime',h:112,c:.13,l:.76,dh:-4,dc:.012}],
+  neut:[{name:'Aged plastic',L:[.66,.93],c:.035,h:92},{name:'Charcoal',L:[.24,.5],c:.012,h:80}]};
 const PRESETS={
   none:{name:'Open (no theme)',win:[[180,180]],C:[.05,.15],L:[.14,.95],spread:'multi',neutral:true},
-  gruvbox:{name:'Gruvbox-style',tpl:GRUV,C:[.07,.2],L:[.22,.97],spread:'full',neutral:true},
-  computing90:{name:"'90s computing",win:[[265,12],[195,12],[105,10],[25,10],[145,10]],C:[.05,.14],L:[.2,.93],spread:'multi',neutral:true,nh:85,nc:.025},
+  gruvbox:{name:'Gruvbox-style',tpl:GRUV,C:[.07,.2],L:[.22,.97],spread:'multi',neutral:true},
+  computing90:{name:"'90s computing",tpl:RETRO90,C:[.06,.15],L:[.22,.93],spread:'multi',neutral:true},
   scandi:{name:'Scandinavian',win:[[235,25],[65,20],[145,20],[25,10]],C:[.015,.06],L:[.3,.97],spread:'multi',neutral:true,nh:75,nc:.012},
   sixties:{name:"'60s",win:[[55,12],[105,12],[140,15],[30,10],[200,15]],C:[.08,.15],L:[.3,.88],spread:'multi',neutral:true,nh:80,nc:.02},
-  seventies:{name:"'70s",win:[[50,12],[75,12],[100,12],[30,10],[130,15]],C:[.06,.13],L:[.2,.85],spread:'multi',neutral:true,nh:60,nc:.025},
-  eighties:{name:"'80s neon",win:[[345,12],[200,12],[300,15],[135,10]],C:[.15,.3],L:[.2,.9],spread:'multi',neutral:true,nh:290,nc:.03},
-  vapor:{name:'Vaporwave',win:[[345,15],[305,18],[205,15]],C:[.08,.17],L:[.5,.93],spread:'multi',neutral:false},
-  cyber:{name:'Cyberpunk',win:[[330,12],[195,12],[105,8]],C:[.12,.25],L:[.12,.9],spread:'multi',neutral:true,nh:280,nc:.03},
+  seventies:{name:"'70s",win:[[50,12],[75,12],[100,12],[30,10],[130,15],[200,12],[330,12]],C:[.06,.13],L:[.2,.85],spread:'multi',neutral:true,nh:60,nc:.025},
+  eighties:{name:"'80s neon",win:[[345,18],[200,18],[300,20],[135,15]],C:[.15,.3],L:[.2,.9],spread:'multi',neutral:true,nh:290,nc:.03},
+  vapor:{name:'Vaporwave',win:[[345,22],[305,24],[205,22]],C:[.08,.17],L:[.5,.93],spread:'multi',neutral:false},
+  // neon windows round most of the wheel; hot pink and cyan are listed twice so they still turn up most often
+  cyber:{name:'Cyberpunk',win:[[340,14],[330,20],[312,14],[290,16],[262,14],[232,16],[198,14],[195,15],[170,14],[142,14],[118,10],[62,16],[30,12]],C:[.24,.34],L:[.1,.93],spread:'multi',neutral:true,nh:285,nc:.035,cusp:true},
   pastel:{name:'Pastel',win:[[180,180]],C:[.04,.08],L:[.8,.96],spread:'full',neutral:false},
-  earthy:{name:'Earthy',win:[[60,30],[125,25]],C:[.03,.09],L:[.18,.85],spread:'multi',neutral:true,nh:70,nc:.02},
-  autumn:{name:'Autumn',win:[[45,35]],C:[.07,.15],L:[.18,.88],spread:'analogous',neutral:true,nh:50,nc:.02},
-  ocean:{name:'Ocean',win:[[220,40]],C:[.04,.13],L:[.18,.93],spread:'analogous',neutral:true,nh:230,nc:.015},
-  monoscreen:{name:'Mono screen (CRT / handheld)',win:[[140,6]],C:[.04,.12],L:[.12,.9],spread:'mono',neutral:false}};
+  earthy:{name:'Earthy',win:[[35,12],[60,30],[85,12],[125,25],[150,12],[230,15],[350,15]],C:[.03,.09],L:[.18,.85],spread:'multi',neutral:true,nh:70,nc:.02},
+  autumn:{name:'Autumn',win:[[30,12],[55,15],[55,15],[85,12],[15,10],[355,10],[150,15]],C:[.07,.15],L:[.18,.88],spread:'multi',neutral:true,nh:50,nc:.02},
+  ocean:{name:'Ocean',win:[[155,12],[178,12],[200,12],[200,12],[225,12],[250,12],[250,12],[278,10]],C:[.04,.13],L:[.18,.93],spread:'multi',neutral:true,nh:230,nc:.015},
+  monoscreen:{name:'Mono screen (CRT / handheld)',win:[[140,5],[140,5],[118,5],[72,5],[50,5],[200,6],[255,6]],C:[.04,.12],L:[.12,.9],spread:'mono',neutral:false}};
 const SAT={muted:[.02,.06],balanced:[.05,.12],vivid:[.11,.26]},SATMUL={auto:1,muted:.4,balanced:.75,vivid:1.3};
 const MOOD={dark:[.08,.6],full:[.12,.96],light:[.55,.97]},MOODSHIFT={auto:0,dark:-.15,full:0,light:.15};
 const MONOHUES=[['auto','Style default'],['140','Green phosphor'],['118','Handheld pea green'],['72','Amber'],['50','Orange plasma'],['200','Cyan'],['255','Blue'],['custom','Custom hue']];
@@ -677,6 +686,8 @@ function palTemplate(p,sel,thr=.02){
 function presetOf(key){
   if(key&&key.startsWith('pal:')){const p=state.palettes.find(x=>x.id===key.slice(4));const t=p&&palTemplate(p,ui.rand.srcGroups);if(t&&t.tpl.fams.length)return t}
   return PRESETS[key]||PRESETS.none}
+// Lightness where a hue reaches its strongest in-gamut chroma (the gamut cusp), cached per whole degree
+const cuspL=memo(h=>{h=(Math.round(h)%360+360)%360;let best=.5,bc=-1;for(let L=.3;L<=.95;L+=.01){const c=oklch(safe(L,.5,h)).C;if(c>bc){bc=c;best=L}}return best});
 const REL={mono:[0],analogous:[-30,0,30],accent:[-30,0,30,180],comp:[0,180],near:[0,165],split:[0,150,210],dcomp:[0,60,180,240],compound:[0,30,180,210],triad:[0,120,240],tetrad:[0,90,180,270],penta:[0,72,144,216,288],golden:[0,137.5,275]};
 const RELS=[['auto','Style'],['mono','Mono'],['analogous','Analogous'],['accent','Analogous + accent'],['comp','Complementary'],['near','Near-complementary'],['split','Split complementary'],['dcomp','Double complementary'],['compound','Compound'],['triad','Triadic'],['tetrad','Tetradic (square)'],['penta','Pentadic'],['golden','Golden ratio'],['custom','Custom']],REL_UI=RELS.map(r=>r[0]);
 const WHEEL12=[['25','Red'],['55','Orange'],['75','Amber'],['100','Yellow'],['125','Lime'],['145','Green'],['175','Teal'],['200','Cyan'],['235','Azure'],['265','Blue'],['295','Violet'],['330','Magenta']];
@@ -696,12 +707,12 @@ function genRandom(o){
   let fams,relBase=null;
   if(pre.tpl){
     // template builder: pick families from the template, vary them a little
-    let pool=pre.tpl.fams.map(f=>({...f,h:f.h+rnd(-7,7),c:f.c*rnd(.88,1.12)*satMul(o),l:Math.max(.25,Math.min(.85,f.l+rnd(-.04,.04)+MOODSHIFT[o.mood]))}));
+    const J=pre.tpl.jit??7;let pool=pre.tpl.fams.map(f=>({...f,h:f.h+rnd(-J,J),c:f.c*rnd(.88,1.12)*satMul(o),l:Math.max(.25,Math.min(.85,f.l+rnd(-.04,.04)+MOODSHIFT[o.mood]))}));
     const order=pool.map((f,i)=>[R(),i]).sort((a,b)=>a[0]-b[0]).map(x=>pool[x[1]]);
     if(spread==='mono')pool=[baseH!=null?nearestFams(pool,[baseH])[0]:order[0]];
     else if(REL[spread]){const b=relBase=baseH??order[0].h;pool=nearestFams(pool,REL[spread].map(d=>b+d))}
     else if(spread==='custom'){const cs=(o.customHues||[]).map(Number);pool=cs.length?nearestFams(pool,cs):[order[0]]}
-    else if(spread==='multi'){const r=ri(4,5);pool=order.slice(0,r)}
+    else if(spread==='multi'){const[pa,pb]=pre.tpl.pick||[4,5],r=ri(pa,pb);pool=order.slice(0,r)}
     if(monoH!=null)pool[0].h=monoH;
     seedH.forEach(h=>{let b=pool[0];pool.forEach(f=>{if(Math.abs(hdiff(f.h,h))<Math.abs(hdiff(b.h,h)))b=f});b.h=h});
     fams=pool.map(f=>({...f,h:warmCool(f.h),tpl:true}));
@@ -732,9 +743,11 @@ function genRandom(o){
     else if(f.tpl){const sp=Math.min(.11,.7/Math.max(1,per-1));
       for(let i=0;i<per;i++){const k=i-(per-1)/2,l=f.l+k*sp;
         r.push(o.ramps?safe(l,Math.max(0,f.c-k*f.dc),f.h-k*f.dh):safe(f.l+rnd(-.3,.25),f.c*rnd(.7,1.15),f.h+rnd(-8,8)))}}
-    else if(o.ramps){const span=L[1]-L[0],lo=L[0]+rnd(0,.04),hi=L[1]-rnd(0,.04),pk=rnd(L[0]+span*.3,L[1]-span*.2);
-      for(let i=0;i<per;i++){const l=lo+(hi-lo)*i/(per-1),dL=l-pk,c=f.c*Math.max(.3,1-(dL/.8)**2);
-        r.push(safe(l,c,towards(f.h,dL<0?shadeTo(f.h):75,o.shift*Math.abs(dL)/.8)+rnd(-3,3)))}}
+    else if(o.ramps){const span=L[1]-L[0],lo=L[0]+rnd(0,.04),hi=L[1]-rnd(0,.04),pkR=rnd(L[0]+span*.3,L[1]-span*.2),pk=pre.cusp?Math.min(hi,Math.max(lo,cuspL(f.h))):pkR,ls=[];
+      for(let i=0;i<per;i++){const l=lo+(hi-lo)*i/(per-1),dL=l-pk,c=f.c*Math.max(.3,1-(dL/.8)**2);ls.push(l);
+        r.push(safe(l,c,towards(f.h,dL<0?shadeTo(f.h):75,o.shift*Math.abs(dL)/.8)+rnd(-3,3)))}
+      // neon styles: the step nearest the hue's most saturated lightness becomes the full-strength colour
+      if(pre.cusp){let j=0;ls.forEach((l,i)=>{if(Math.abs(l-pk)<Math.abs(ls[j]-pk))j=i});r[j]=safe(pk,f.c,f.h)}}
     else for(let i=0;i<per;i++)r.push(safe(rnd(L[0],L[1]),f.c*rnd(.6,1.25),f.h+rnd(-12,12)));
     out.push({name:f.name+(o.ramps?' ramp':''),colors:r,h:f.h})});
   neut.forEach(n=>{const r=[];for(let i=0;i<per;i++){const l=o.ramps?n.L[0]+(n.L[1]-n.L[0])*i/(per-1):rnd(n.L[0],n.L[1]);r.push(safe(l,n.c,n.h))}

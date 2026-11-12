@@ -84,3 +84,45 @@ Checks:
 - The `audit.js` issue list is unchanged (the same 18 entries).
 - `testuss.js` passes, and there are no console errors.
 - The `uishots` differences come from the new rail text and buttons.
+
+## Preset variety audit (2026-11-11, version 2.1.0)
+
+**Method.** For each preset I ran 60 shuffles with default settings (`tests/variety.js`), plus a contact sheet of 8 shuffles per preset. The columns:
+- **dist:** mean OKLab distance between two shuffles' palettes (each colour to its nearest match in the other). Higher means each shuffle feels more different. "Open" is the reference at 0.058.
+- **hue bins:** how many 15° hue slices appear across all 60 shuffles.
+- **family sets:** how many different combinations of 30° hue families appear in 60 shuffles.
+- **top set:** how often the most common combination appears.
+
+| Preset | dist | hue bins | family sets | top set | Verdict |
+|---|---|---|---|---|---|
+| Open (no theme) | 0.058 | 24/24 | 58/60 | 3% | reference |
+| **Gruvbox-style** | 0.032 | 17/24 | **4/60** | **43%** | 🔴 near-identical every shuffle |
+| '90s computing (2.1.0) | 0.070 | 22/24 | 50/60 | 5% | ✅ fixed this release (was 0.051, 16/24, 31/60) |
+| Cyberpunk (2.1.0) | 0.077 | 24/24 | 55/60 | 5% | ✅ fixed this release (was 0.044, 11/24, 3/60) |
+| Scandinavian | 0.036 | 14/24 | 30/60 | 12% | ✅ fine; low distance comes from its deliberately low chroma |
+| '60s | 0.044 | 14/24 | 29/60 | 13% | ✅ fine |
+| **'70s** | 0.040 | 10/24 | 12/60 | 22% | 🟡 the same browns, olives and terracottas |
+| '80s neon | 0.053 | 14/24 | 14/60 | 28% | 🟡 mild; varied enough in practice |
+| Vaporwave | 0.039 | 11/24 | 9/60 | 17% | 🟡 mild; three windows by design |
+| Pastel | 0.023 | 24/24 | 36/60 | 12% | ✅ hues vary widely; low distance comes from everything being light |
+| **Earthy** | 0.037 | 10/24 | **6/60** | **50%** | 🔴 only two windows, so it's always brown + olive + green |
+| **Autumn** | 0.032 | 10/24 | 10/60 | 32% | 🟠 the same rust, brown, amber and mustard ramps |
+| **Ocean** | 0.030 | 12/24 | 11/60 | 37% | 🟠 the same teal and navy ramps |
+| Mono screen | 0.015 | 2/24 | 1/60 | 100% | ⚪ one hue by design, but 2 of 60 shuffles came out identical |
+
+### Fixes applied (2.1.0)
+
+All flagged presets were retuned. Each fix widens the range of hues; the chroma range and the overall look stay the same. Figures are from 60 shuffles before → after.
+
+| Preset | Change | dist | family sets | top set |
+|---|---|---|---|---|
+| Gruvbox-style | `spread:'multi'` picking 4–6 of the 7 template families (new `pick` template option), hue wander ±10° (new `jit` option) | 0.032 → 0.055 | 4 → 41 | 43% → 8% |
+| Earthy | Added clay (35), ochre (85), sage (150), slate (230) and plum-brown (350) windows to the brown and olive ones | 0.037 → 0.044 | 6 → 41 | 50% → 8% |
+| Autumn | Windows for rust, amber (×2), mustard, deep red, burgundy and an evergreen accent, `spread:'multi'` (was analogous in one window) | 0.032 → 0.044 | 10 → 29 | 32% → 8% |
+| Ocean | Sea-only windows from seafoam (155) to indigo (278), `spread:'multi'`. A trial with sand and coral accents drowned the sea hues, so it was dropped. | 0.030 → 0.044 | 11 → 23 | 37% → 12% |
+| '70s | Added muted teal (200) and dusty plum (330) windows | 0.040 → 0.050 | 12 → 43 | 22% → 8% |
+| '80s neon | Windows widened from ±10–15° to ±15–20° | 0.053 → 0.057 | 14 → 22 | 28% → 22% |
+| Vaporwave | Windows widened from ±15–18° to ±22–24° | 0.039 → 0.042 | 9 → 21 | 17% → 15% |
+| Mono screen | With the screen hue on Style default, each shuffle picks a phosphor: green (most often), pea green, amber, orange, cyan or blue | 0.015 → 0.059 | 1 → 6 | 100% → 27% |
+
+The generator code changed in one place only: template styles read `jit` and `pick`. The defaults (7° and 4–5) keep saved-palette styles byte-identical. Open, Scandinavian, '60s and Pastel are unchanged.

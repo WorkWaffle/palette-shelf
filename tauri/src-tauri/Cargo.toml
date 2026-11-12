@@ -1,6 +1,6 @@
 [package]
 name = "palette-shelf"
-version = "2.0.0"
+version = "2.1.0"
 description = "Personal colour palette manager"
 edition = "2021"
 

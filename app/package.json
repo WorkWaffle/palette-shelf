@@ -1,7 +1,7 @@
 {
   "name": "palette-shelf",
   "productName": "Palette Shelf",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Personal colour palette manager",
   "main": "main.js",
   "author": "Palette Shelf",

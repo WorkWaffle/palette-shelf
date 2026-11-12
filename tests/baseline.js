@@ -49,6 +49,7 @@ R.parse=['cosmo-zoids.txt','cosmo-zoids.hex','cosmo-zoids.gpl','ennis-blade-exte
 const multi={name:'Test',groups:[{id:'a',name:'Warm',colors:['#ff0000','#ffaa00']},{id:'b',name:'Cool',colors:['#0000ff']}]};
 R.exports=[];for(const fmt of ['gpl','txt','hex','all'])for(const scope of ['whole','each','one']){ui.exp.fmt=fmt;ui.exp.scope=scope;ui.exp.group='b';R.exports.push([fmt,scope,exportFiles(multi).map(f=>[f.name,f.text])])}
 // colour names and maths
+seed=1;// reseed so the colour-maths sample does not depend on how many random numbers the sections above used
 const cs=[];for(let i=0;i<600;i++){cs.push('#'+[0,0,0].map(()=>Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join(''))}
 R.names=cs.map(colorName);R.lch=cs.slice(0,100).map(c=>{const o=oklch(c);return [o.L.toFixed(6),o.C.toFixed(6),o.H.toFixed(4)]});
 R.contrast=cs.slice(0,100).map((c,i)=>ratio(c,cs[i+100]).toFixed(5));
